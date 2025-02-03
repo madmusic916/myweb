@@ -32,7 +32,16 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js";
     import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore.js";
-    import { firebaseConfig } from "./firebaseConfig.js";
+
+    export const firebaseConfig = {
+    apiKey: "AIzaSyCWf9xkJPcwHUjS71s2vpNiGIljcxux_Tw",
+    authDomain: "digibyte-ffa4e.firebaseapp.com",
+    projectId: "digibyte-ffa4e",
+    storageBucket: "digibyte-ffa4e.appspot.com",
+    messagingSenderId: "1061576583718",
+    appId: "1:1061576583718:web:0760674758d4e7787594e7",
+    measurementId: "G-526R70KJ6Q"
+};
 
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
