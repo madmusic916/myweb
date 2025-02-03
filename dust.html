@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Welcome to the Home Page!</h1>
+    <p>You are successfully logged in.</p>
+
+    <p><strong>Username:</strong> <span id="userName">Loading...</span></p>
+    <p><strong>Points:</strong> <span id="userPoints">0</span></p>
+
+    <button id="getPointsButton">Get Points</button>
+    <button id="startTaskButton">Start Task</button>
+    <button id="logoutButton">Logout</button>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js";
+    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore.js";
+    import { firebaseConfig } from "./firebaseConfig.js";
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Get UI elements
+    const userNameDisplay = document.getElementById("userName");
+    const userPointsDisplay = document.getElementById("userPoints");
+    const getPointsButton = document.getElementById("getPointsButton");
+    const startTaskButton = document.getElementById("startTaskButton");
+    const logoutButton = document.getElementById("logoutButton");
+
+    let currentUser;
+
+    // ✅ Check authentication state
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            currentUser = user;
+            userNameDisplay.textContent = user.displayName || "No Username";
+
+            // Load user points
+            await loadUserPoints(user.uid);
+        } else {
+            window.location.href = "index.html"; // Redirect if not logged in
+        }
+    });
+
+    // ✅ Load user points from Firestore
+    async function loadUserPoints(uid) {
+        const userRef = doc(db, "users", uid);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+            const data = userSnap.data();
+            userPointsDisplay.textContent = data.rewardPoints || 0;
+        } else {
+            await setDoc(userRef, { rewardPoints: 0, taskCompleted: false }, { merge: true });
+            userPointsDisplay.textContent = 0;
+        }
+    }
+
+    // ✅ Handle "Start Task" button click
+    startTaskButton.addEventListener("click", async () => {
+        if (!currentUser) return;
+
+        // Set `pendingTask = true` before redirecting
+        const userRef = doc(db, "users", currentUser.uid);
+        await updateDoc(userRef, { pendingTask: true });
+
+        // Redirect to verify.html
+        window.location.href = "verify.html";
+    });
+
+    // ✅ Handle "Get Points" button click
+    getPointsButton.addEventListener("click", async () => {
+        if (!currentUser) return;
+
+        const userRef = doc(db, "users", currentUser.uid);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+            const userData = userSnap.data();
+
+            if (userData.taskCompleted) {
+                let currentPoints = userData.rewardPoints || 0;
+                let newPoints = currentPoints + 10; // Reward 10 points
+
+                await updateDoc(userRef, { rewardPoints: newPoints, taskCompleted: false });
+                userPointsDisplay.textContent = newPoints;
+                alert("You earned 10 points!");
+
+            } else {
+                alert("You must complete the task first!");
+            }
+        }
+    });
+
+    // ✅ Handle Logout
+    logoutButton.addEventListener("click", async () => {
+        await signOut(auth);
+        window.location.href = "index.html";
+    });
+
+</script>
+
+</body>
+</html>
