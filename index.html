@@ -59,16 +59,17 @@
 
     // ✅ Check authentication state
     onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            currentUser = user;
-            userNameDisplay.textContent = user.displayName || "No Username";
-
-            // Load user points
-            await loadUserPoints(user.uid);
-        } else {
-            window.location.href = "index.html"; // Redirect if not logged in
+    if (user) {
+        currentUser = user;
+        userNameDisplay.textContent = user.displayName || "No Username";
+        await loadUserPoints(user.uid);
+    } else {
+        if (window.location.pathname !== "/myweb/index.html") {
+            window.location.href = "index.html"; // ✅ Redirect only if needed
         }
-    });
+    }
+});
+
 
     // ✅ Load user points from Firestore
     async function loadUserPoints(uid) {
