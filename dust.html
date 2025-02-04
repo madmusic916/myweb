@@ -99,7 +99,7 @@
                     const taskId = button.getAttribute("data-task");
                     const lastCompletedTime = taskCompletionTimes[taskId] || 0;
 
-                    if (completedTasks.includes(taskId) && now - lastCompletedTime < 24 * 60 * 60 * 1000) {
+                    if (completedTasks.includes(taskId) && now - lastCompletedTime < 1 * 60 * 1000) {
                         // ✅ Disable button if 24 hours haven't passed
                         button.disabled = true;
                         button.classList.add("disabled");
