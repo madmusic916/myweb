@@ -79,19 +79,18 @@
     startTaskButton.addEventListener("click", async () => {
         if (!currentUser) return;
 
-        // ✅ Generate a unique session ID (timestamp-based)
         const sessionId = Date.now();
         console.log("Generated Session ID:", sessionId);
 
-        // ✅ Set task as "pending" in Firestore
+        // ✅ Store the task start time
         const userRef = doc(db, "users", currentUser.uid);
-        await updateDoc(userRef, { pendingTask: sessionId });
-        console.log("Stored in Firestore:", sessionId);
+        await updateDoc(userRef, { pendingTask: sessionId, taskStartTime: sessionId });
 
-        // ✅ Redirect to the short link with session ID
         window.location.href = `https://adlink.click/st?api=7c0188129805980a4249193b317141249db63175&url=https://madmusic916.github.io/myweb/dust.html?session=${sessionId}`;
     });
 
+
+    // ✅ Function to check if user came back from the short link
     // ✅ Function to check if user came back from the short link
     async function checkReferral() {
         if (!currentUser) return;
@@ -100,29 +99,59 @@
         const sessionId = urlParams.get("session");
 
         console.log("Extracted Session ID from URL:", sessionId);
+        console.log("Referrer:", document.referrer);
 
-        if (sessionId) {
-            const userRef = doc(db, "users", currentUser.uid);
-            const userSnap = await getDoc(userRef);
+        const userRef = doc(db, "users", currentUser.uid);
+        const userSnap = await getDoc(userRef);
 
-            if (userSnap.exists()) {
-                const storedSession = userSnap.data().pendingTask;
-                console.log("Stored Pending Task in Firestore:", storedSession);
+        if (!userSnap.exists()) return;
 
-                // ✅ Convert session ID to number before comparing
-                if (Number(sessionId) === storedSession) {
-                    // ✅ Award points since the user completed the short link
-                    const newPoints = (userSnap.data().rewardPoints || 0) + 10; // Reward 10 points
-                    await updateDoc(userRef, { rewardPoints: newPoints, pendingTask: false });
+        const storedSession = userSnap.data().pendingTask;
+        const taskStartTime = userSnap.data().taskStartTime || 0;
+        const lastCompletedTask = userSnap.data().lastCompletedTask || 0;
+        const timeElapsed = Date.now() - taskStartTime;
 
-                    userPointsDisplay.textContent = newPoints; // Update UI
-                   
-                } else {
-                    alert("You must complete the short link task first!");
-                }
-            }
+        console.log("Stored Session:", storedSession);
+        console.log("Time elapsed since task started:", timeElapsed);
+
+        // ✅ Prevent quick return (less than 10 seconds)
+        if (timeElapsed < 10000) {
+            alert("You must complete the short link properly!");
+            return;
+        }
+
+        // ✅ Ensure user came from short link (but handle browser referrer blocking)
+        if (!document.referrer.includes("adlink.click")) {
+            alert("Warning: We couldn’t verify if you completed the short link. If this is a mistake, make sure your browser allows referrer tracking.");
+            return;
+        }
+
+        // ✅ Prevent reusing old session IDs for multiple rewards
+        if (Number(sessionId) === lastCompletedTask) {
+            alert("You already completed this task! Start a new task to earn more points.");
+            return;
+        }
+
+        // ✅ Check if the session ID matches the pending task
+        if (Number(sessionId) === storedSession) {
+            // ✅ Award points since the user completed the short link
+            const newPoints = (userSnap.data().rewardPoints || 0) + 10;
+
+            // ✅ Update Firestore: Give points, reset pending task, clear task time & store last completed task
+            await updateDoc(userRef, {
+                rewardPoints: newPoints,
+                pendingTask: false,
+                taskStartTime: null,
+                lastCompletedTask: Number(sessionId) // Store last completed session
+            });
+
+            userPointsDisplay.textContent = newPoints; // Update UI
+           
+        } else {
+            alert("Invalid session ID! Complete the task properly.");
         }
     }
+
 
     // ✅ Handle Logout
     logoutButton.addEventListener("click", async () => {
