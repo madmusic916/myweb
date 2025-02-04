@@ -97,7 +97,12 @@
 
                 taskButtons.forEach(button => {
                     const taskId = button.getAttribute("data-task");
-                    const lastCompletedTime = taskCompletionTimes[taskId] || 0;
+                    const lastCompletedTimeObj = taskCompletionTimes[taskId];
+
+                    let lastCompletedTime = 0;
+                    if (lastCompletedTimeObj) {
+                        lastCompletedTime = lastCompletedTimeObj.seconds * 1000; // ✅ Convert Firestore timestamp to milliseconds
+                    }
 
                     if (completedTasks.includes(taskId) && now - lastCompletedTime < 24 * 60 * 60 * 1000) {
                         // ✅ Disable button if 24 hours haven't passed
