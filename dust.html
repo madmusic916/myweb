@@ -12,6 +12,20 @@
             padding: 0;
             background-color: #f4f4f9;
         }
+        .container {
+            margin-top: 50px;
+        }
+        .task-button {
+            display: block;
+            margin: 10px auto;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .disabled {
+            background-color: grey;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -23,7 +37,14 @@
     <p><strong>Username:</strong> <span id="userName">Loading...</span></p>
     <p><strong>Points:</strong> <span id="userPoints">0</span></p>
 
-    <button id="startTaskButton">Start Task</button>
+    <div id="taskButtons">
+        <button class="task-button" data-task="1">Task 1</button>
+        <button class="task-button" data-task="2">Task 2</button>
+        <button class="task-button" data-task="3">Task 3</button>
+        <button class="task-button" data-task="4">Task 4</button>
+        <button class="task-button" data-task="5">Task 5</button>
+    </div>
+
     <button id="logoutButton">Logout</button>
 </div>
 
@@ -41,7 +62,7 @@
     // ✅ Get UI elements
     const userNameDisplay = document.getElementById("userName");
     const userPointsDisplay = document.getElementById("userPoints");
-    const startTaskButton = document.getElementById("startTaskButton");
+    const taskButtons = document.querySelectorAll(".task-button");
     const logoutButton = document.getElementById("logoutButton");
 
     let currentUser;
@@ -51,107 +72,111 @@
         if (user) {
             currentUser = user;
             userNameDisplay.textContent = user.displayName || "No Username";
-
-            // ✅ Load user points when they log in
-            await loadUserPoints(user.uid);
-
-            // ✅ Check if they came from the short link
+            await loadUserData(user.uid);
             checkReferral();
         } else {
             window.location.href = "index.html"; // Redirect if not logged in
         }
     });
 
-    // ✅ Function to load user points from Firestore
-    async function loadUserPoints(uid) {
+    // ✅ Securely Load User Data & Disable Completed Tasks
+    async function loadUserData(uid) {
         const userRef = doc(db, "users", uid);
         const userSnap = await getDoc(userRef);
 
         if (userSnap.exists()) {
             userPointsDisplay.textContent = userSnap.data().rewardPoints || 0;
+
+            // ✅ Get completed tasks from Firestore
+            const completedTasks = userSnap.data().completedTasks || [];
+
+            // ✅ Securely disable completed buttons
+            taskButtons.forEach(button => {
+                const taskId = button.getAttribute("data-task");
+                if (completedTasks.includes(taskId)) {
+                    button.disabled = true;
+                    button.classList.add("disabled");
+                } else {
+                    button.addEventListener("click", () => startTask(taskId));
+                }
+            });
         } else {
-            await setDoc(userRef, { rewardPoints: 0, pendingTask: false }, { merge: true });
+            await setDoc(userRef, { rewardPoints: 0, completedTasks: [] }, { merge: true });
             userPointsDisplay.textContent = 0;
         }
     }
 
-    // ✅ Start Task Button Click
-    startTaskButton.addEventListener("click", async () => {
+    // ✅ Start Task Function (Redirect to Short Link)
+    async function startTask(taskId) {
         if (!currentUser) return;
 
         const sessionId = Date.now();
-        console.log("Generated Session ID:", sessionId);
+        console.log(`Starting Task ${taskId} - Session ID:`, sessionId);
 
-        // ✅ Store the task start time
         const userRef = doc(db, "users", currentUser.uid);
         await updateDoc(userRef, { pendingTask: sessionId, taskStartTime: sessionId });
 
-        window.location.href = `https://adlink.click/st?api=7c0188129805980a4249193b317141249db63175&url=https://madmusic916.github.io/myweb/dust.html?session=${sessionId}`;
-    });
+        window.location.href = `https://adlink.click/st?api=7c0188129805980a4249193b317141249db63175&url=https://madmusic916.github.io/myweb/dust.html?session=${sessionId}&task=${taskId}`;
+    }
 
-
-    // ✅ Function to check if user came back from the short link
-    // ✅ Function to check if user came back from the short link
+    // ✅ Check if User Returned from Short Link
     async function checkReferral() {
         if (!currentUser) return;
 
         const urlParams = new URLSearchParams(window.location.search);
         const sessionId = urlParams.get("session");
+        const taskId = urlParams.get("task");
 
-        console.log("Extracted Session ID from URL:", sessionId);
-        console.log("Referrer:", document.referrer);
+        if (!sessionId || !taskId) return;
 
         const userRef = doc(db, "users", currentUser.uid);
         const userSnap = await getDoc(userRef);
-
         if (!userSnap.exists()) return;
 
         const storedSession = userSnap.data().pendingTask;
         const taskStartTime = userSnap.data().taskStartTime || 0;
         const lastCompletedTask = userSnap.data().lastCompletedTask || 0;
+        const completedTasks = userSnap.data().completedTasks || [];
         const timeElapsed = Date.now() - taskStartTime;
 
-        console.log("Stored Session:", storedSession);
-        console.log("Time elapsed since task started:", timeElapsed);
-
-        // ✅ Prevent quick return (less than 10 seconds)
         if (timeElapsed < 10000) {
             alert("You must complete the short link properly!");
             return;
         }
 
-        // ✅ Ensure user came from short link (but handle browser referrer blocking)
         if (!document.referrer.includes("adlink.click")) {
-            alert("Warning: We couldn’t verify if you completed the short link. If this is a mistake, make sure your browser allows referrer tracking.");
+            alert("Warning: We couldn’t verify if you completed the short link.");
             return;
         }
 
-        // ✅ Prevent reusing old session IDs for multiple rewards
-        if (Number(sessionId) === lastCompletedTask) {
-            alert("You already completed this task! Start a new task to earn more points.");
+        if (Number(sessionId) === lastCompletedTask || completedTasks.includes(taskId)) {
+            alert("You already completed this task!");
             return;
         }
 
-        // ✅ Check if the session ID matches the pending task
         if (Number(sessionId) === storedSession) {
-            // ✅ Award points since the user completed the short link
             const newPoints = (userSnap.data().rewardPoints || 0) + 10;
+            completedTasks.push(taskId);
 
-            // ✅ Update Firestore: Give points, reset pending task, clear task time & store last completed task
             await updateDoc(userRef, {
                 rewardPoints: newPoints,
                 pendingTask: false,
                 taskStartTime: null,
-                lastCompletedTask: Number(sessionId) // Store last completed session
+                lastCompletedTask: Number(sessionId),
+                completedTasks: completedTasks
             });
 
-            userPointsDisplay.textContent = newPoints; // Update UI
-           
+            userPointsDisplay.textContent = newPoints;
+            taskButtons.forEach(button => {
+                if (button.getAttribute("data-task") === taskId) {
+                    button.disabled = true;
+                    button.classList.add("disabled");
+                }
+            });
         } else {
-            alert("Invalid session ID! Complete the task properly.");
+            alert("Invalid session ID!");
         }
     }
-
 
     // ✅ Handle Logout
     logoutButton.addEventListener("click", async () => {
