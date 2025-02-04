@@ -13,6 +13,7 @@
             background-color: #f4f4f9;
         }
         .container {
+            display: none; /* Hide content until data is loaded */
             margin-top: 50px;
         }
         .task-button {
@@ -26,11 +27,20 @@
             background-color: grey;
             cursor: not-allowed;
         }
+        #loading {
+            font-size: 20px;
+            font-weight: bold;
+            margin-top: 100px;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
+<!-- Preloader -->
+<div id="loading">Loading...</div>
+
+<!-- Main Content -->
+<div class="container" id="mainContent">
     <h1>Welcome to the Home Page!</h1>
     <p>You are successfully logged in.</p>
 
@@ -64,15 +74,58 @@
     const userPointsDisplay = document.getElementById("userPoints");
     const taskButtons = document.querySelectorAll(".task-button");
     const logoutButton = document.getElementById("logoutButton");
-
+    const loadingScreen = document.getElementById("loading");
+    const mainContent = document.getElementById("mainContent");
     let currentUser;
+
+    // ✅ Load all user data at once
+    async function loadUserData(uid) {
+        const userRef = doc(db, "users", uid);
+
+        try {
+            const userSnap = await getDoc(userRef);
+            if (userSnap.exists()) {
+                const userData = userSnap.data();
+
+                // ✅ Update UI with user data
+                userNameDisplay.textContent = currentUser.displayName || "No Username";
+                userPointsDisplay.textContent = userData.rewardPoints || 0;
+
+                // ✅ Disable completed tasks
+                const completedTasks = userData.completedTasks || [];
+                taskButtons.forEach(button => {
+                    const taskId = button.getAttribute("data-task");
+                    if (completedTasks.includes(taskId)) {
+                        button.disabled = true;
+                        button.classList.add("disabled");
+                    } else {
+                        button.disabled = false;
+                        button.classList.remove("disabled");
+                        button.addEventListener("click", () => startTask(taskId));
+                    }
+                });
+
+            } else {
+                // ✅ Initialize new user data
+                await setDoc(userRef, { rewardPoints: 0, completedTasks: [] }, { merge: true });
+                userNameDisplay.textContent = currentUser.displayName || "No Username";
+                userPointsDisplay.textContent = 0;
+            }
+
+        } catch (error) {
+            console.error("Error loading user data:", error);
+        }
+    }
+
 
     // ✅ Check authentication state
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             currentUser = user;
-            userNameDisplay.textContent = user.displayName || "No Username";
             await loadUserData(user.uid);
+            // ✅ Hide loading screen and show main content
+            loadingScreen.style.display = "none";
+            mainContent.style.display = "block";
             checkReferral();
         } else {
             window.location.href = "index.html"; // Redirect if not logged in
@@ -80,7 +133,7 @@
     });
 
     // ✅ Securely Load User Data & Disable Completed Tasks
-    async function loadUserData(uid) {
+   /*/ async function loadUserData(uid) {
         const userRef = doc(db, "users", uid);
         const userSnap = await getDoc(userRef);
 
@@ -104,7 +157,7 @@
             await setDoc(userRef, { rewardPoints: 0, completedTasks: [] }, { merge: true });
             userPointsDisplay.textContent = 0;
         }
-    }
+    }/*/
 
     // ✅ Start Task Function (Redirect to Short Link)
     async function startTask(taskId) {
