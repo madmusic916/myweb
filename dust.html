@@ -13,17 +13,15 @@
             background-color: #f4f4f9;
         }
         .container {
-            margin-top: 50px;
+            padding: 20px;
         }
-        .task-button {
-            display: block;
-            margin: 10px auto;
-            padding: 10px 20px;
-            font-size: 16px;
+        button {
+            padding: 10px;
+            margin: 10px;
             cursor: pointer;
         }
-        .disabled {
-            background-color: grey;
+        button:disabled {
+            background-color: gray;
             cursor: not-allowed;
         }
     </style>
@@ -37,13 +35,12 @@
     <p><strong>Username:</strong> <span id="userName">Loading...</span></p>
     <p><strong>Points:</strong> <span id="userPoints">0</span></p>
 
-    <div id="taskButtons">
-        <button class="task-button" data-task="1">Task 1</button>
-        <button class="task-button" data-task="2">Task 2</button>
-        <button class="task-button" data-task="3">Task 3</button>
-        <button class="task-button" data-task="4">Task 4</button>
-        <button class="task-button" data-task="5">Task 5</button>
-    </div>
+    <!-- Task buttons -->
+    <button id="taskButton1">Task 1</button>
+    <button id="taskButton2">Task 2</button>
+    <button id="taskButton3">Task 3</button>
+    <button id="taskButton4">Task 4</button>
+    <button id="taskButton5">Task 5</button>
 
     <button id="logoutButton">Logout</button>
 </div>
@@ -62,123 +59,148 @@
     // ✅ Get UI elements
     const userNameDisplay = document.getElementById("userName");
     const userPointsDisplay = document.getElementById("userPoints");
-    const taskButtons = document.querySelectorAll(".task-button");
     const logoutButton = document.getElementById("logoutButton");
+
+    // ✅ Task buttons mapping
+    const buttons = {
+        button1: "taskButton1",
+        button2: "taskButton2",
+        button3: "taskButton3",
+        button4: "taskButton4",
+        button5: "taskButton5"
+    };
 
     let currentUser;
 
-    // ✅ Check authentication state
+    // ✅ Authentication check
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             currentUser = user;
             userNameDisplay.textContent = user.displayName || "No Username";
-            await loadUserData(user.uid);
+
+            // ✅ Load user data
+            await loadUserData();
             checkReferral();
         } else {
             window.location.href = "index.html"; // Redirect if not logged in
         }
     });
 
-    // ✅ Securely Load User Data & Disable Completed Tasks
-    async function loadUserData(uid) {
-        const userRef = doc(db, "users", uid);
-        const userSnap = await getDoc(userRef);
-
-        if (userSnap.exists()) {
-            userPointsDisplay.textContent = userSnap.data().rewardPoints || 0;
-
-            // ✅ Get completed tasks from Firestore
-            const completedTasks = userSnap.data().completedTasks || [];
-
-            // ✅ Securely disable completed buttons
-            taskButtons.forEach(button => {
-                const taskId = button.getAttribute("data-task");
-                if (completedTasks.includes(taskId)) {
-                    button.disabled = true;
-                    button.classList.add("disabled");
-                } else {
-                    button.addEventListener("click", () => startTask(taskId));
-                }
-            });
-        } else {
-            await setDoc(userRef, { rewardPoints: 0, completedTasks: [] }, { merge: true });
-            userPointsDisplay.textContent = 0;
-        }
-    }
-
-    // ✅ Start Task Function (Redirect to Short Link)
-    async function startTask(taskId) {
+    // ✅ Load user data from Firestore
+    async function loadUserData() {
         if (!currentUser) return;
 
-        const sessionId = Date.now();
-        console.log(`Starting Task ${taskId} - Session ID:`, sessionId);
-
         const userRef = doc(db, "users", currentUser.uid);
-        await updateDoc(userRef, { pendingTask: sessionId, taskStartTime: sessionId });
+        const userSnap = await getDoc(userRef);
 
-        window.location.href = `https://adlink.click/st?api=7c0188129805980a4249193b317141249db63175&url=https://madmusic916.github.io/myweb/dust.html?session=${sessionId}&task=${taskId}`;
+        if (!userSnap.exists()) {
+            await setDoc(userRef, {
+                rewardPoints: 0,
+                taskStatus: {},
+                shortLinks: {
+                    button1: "https://adlink.click/st?api=123",
+                    button2: "https://adlink.click/st?api=456",
+                    button3: "https://adlink.click/st?api=789",
+                    button4: "https://adlink.click/st?api=101",
+                    button5: "https://adlink.click/st?api=202"
+                }
+            }, { merge: true });
+        }
+
+        const data = userSnap.data();
+        userPointsDisplay.textContent = data.rewardPoints || 0;
+        updateButtons(data.taskStatus, data.shortLinks);
     }
 
-    // ✅ Check if User Returned from Short Link
+    // ✅ Update button states based on Firestore data
+    function updateButtons(taskStatus, shortLinks) {
+        Object.keys(buttons).forEach(buttonId => {
+            const button = document.getElementById(buttons[buttonId]);
+            const task = taskStatus[buttonId] || {};
+            const now = Date.now();
+
+            if (task.completed && task.expiresAt > now) {
+                button.disabled = true; // Disable until 24h passes
+                button.dataset.url = "";
+            } else {
+                button.disabled = false; // Enable task button
+                button.dataset.url = shortLinks[buttonId] || "";
+                button.onclick = () => startTask(buttonId);
+            }
+        });
+    }
+
+    // ✅ Start a task (when user clicks a button)
+    async function startTask(buttonId) {
+        if (!currentUser) return;
+
+        const button = document.getElementById(buttons[buttonId]);
+        const shortLink = button.dataset.url;
+
+        if (!shortLink) {
+            alert("No available task for this button.");
+            return;
+        }
+
+        const userRef = doc(db, "users", currentUser.uid);
+        const userSnap = await getDoc(userRef);
+        const taskStatus = userSnap.data().taskStatus || {};
+
+        if (taskStatus[buttonId]?.completed) {
+            alert("You already completed this task. Wait 24 hours.");
+            return;
+        }
+
+        // ✅ Generate session ID
+        const sessionId = Date.now();
+
+        // ✅ Update Firestore with task start time
+        await updateDoc(userRef, {
+            [`taskStatus.${buttonId}`]: { completed: false, expiresAt: null, taskStartTime: sessionId },
+            pendingTask: sessionId
+        });
+
+        // ✅ Redirect to short link
+        window.location.href = `${shortLink}?session=${sessionId}`;
+    }
+
+    // ✅ Check referral completion
     async function checkReferral() {
         if (!currentUser) return;
 
         const urlParams = new URLSearchParams(window.location.search);
         const sessionId = urlParams.get("session");
-        const taskId = urlParams.get("task");
-
-        if (!sessionId || !taskId) return;
 
         const userRef = doc(db, "users", currentUser.uid);
         const userSnap = await getDoc(userRef);
+
         if (!userSnap.exists()) return;
 
+        const taskStatus = userSnap.data().taskStatus || {};
         const storedSession = userSnap.data().pendingTask;
-        const taskStartTime = userSnap.data().taskStartTime || 0;
-        const lastCompletedTask = userSnap.data().lastCompletedTask || 0;
-        const completedTasks = userSnap.data().completedTasks || [];
-        const timeElapsed = Date.now() - taskStartTime;
+        const timeElapsed = Date.now() - storedSession;
 
         if (timeElapsed < 10000) {
             alert("You must complete the short link properly!");
             return;
         }
 
-        if (!document.referrer.includes("adlink.click")) {
-            alert("Warning: We couldn’t verify if you completed the short link.");
-            return;
-        }
-
-        if (Number(sessionId) === lastCompletedTask || completedTasks.includes(taskId)) {
-            alert("You already completed this task!");
-            return;
-        }
-
-        if (Number(sessionId) === storedSession) {
-            const newPoints = (userSnap.data().rewardPoints || 0) + 10;
-            completedTasks.push(taskId);
+        Object.keys(buttons).forEach(async (buttonId) => {
+            if (taskStatus[buttonId]?.completed) return;
 
             await updateDoc(userRef, {
-                rewardPoints: newPoints,
-                pendingTask: false,
-                taskStartTime: null,
-                lastCompletedTask: Number(sessionId),
-                completedTasks: completedTasks
+                [`taskStatus.${buttonId}`]: { completed: true, expiresAt: Date.now() + 86400000, taskStartTime: null },
+                [`shortLinks.${buttonId}`]: ""
             });
 
-            userPointsDisplay.textContent = newPoints;
-            taskButtons.forEach(button => {
-                if (button.getAttribute("data-task") === taskId) {
-                    button.disabled = true;
-                    button.classList.add("disabled");
-                }
-            });
-        } else {
-            alert("Invalid session ID!");
-        }
+            document.getElementById(buttons[buttonId]).disabled = true;
+            document.getElementById(buttons[buttonId]).dataset.url = "";
+        });
+
+        location.reload();
     }
 
-    // ✅ Handle Logout
+    // ✅ Logout handler
     logoutButton.addEventListener("click", async () => {
         await signOut(auth);
         window.location.href = "index.html";
