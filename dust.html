@@ -63,6 +63,7 @@
     import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore.js";
     import { firebaseConfig } from "./firebaseConfig.js";
+    import { serverTimestamp } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore.js";
 
     // ✅ Initialize Firebase
     const app = initializeApp(firebaseConfig);
@@ -221,7 +222,7 @@
                 taskStartTime: null,
                 lastCompletedTask: Number(sessionId),
                 completedTasks: completedTasks,
-                [`taskCompletionTimes.${taskId}`]: Date.now() // ✅ Store task completion time
+                [`taskCompletionTimes.${taskId}`]: serverTimestamp() // ✅ Secure Firestore timestamp
             });
 
             userPointsDisplay.textContent = newPoints;
