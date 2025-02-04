@@ -23,7 +23,6 @@
     <p><strong>Username:</strong> <span id="userName">Loading...</span></p>
     <p><strong>Points:</strong> <span id="userPoints">0</span></p>
 
-    <button id="getPointsButton">Get Points</button>
     <button id="startTaskButton">Start Task</button>
     <button id="logoutButton">Logout</button>
 </div>
@@ -34,15 +33,14 @@
     import { getFirestore, doc, getDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore.js";
     import { firebaseConfig } from "./firebaseConfig.js";
 
-    // Initialize Firebase
+    // ✅ Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Get UI elements
+    // ✅ Get UI elements
     const userNameDisplay = document.getElementById("userName");
     const userPointsDisplay = document.getElementById("userPoints");
-    const getPointsButton = document.getElementById("getPointsButton");
     const startTaskButton = document.getElementById("startTaskButton");
     const logoutButton = document.getElementById("logoutButton");
 
@@ -54,62 +52,77 @@
             currentUser = user;
             userNameDisplay.textContent = user.displayName || "No Username";
 
-            // Load user points
+            // ✅ Load user points when they log in
             await loadUserPoints(user.uid);
+
+            // ✅ Check if they came from the short link
+            checkReferral();
         } else {
             window.location.href = "index.html"; // Redirect if not logged in
         }
     });
 
-    // ✅ Load user points from Firestore
+    // ✅ Function to load user points from Firestore
     async function loadUserPoints(uid) {
         const userRef = doc(db, "users", uid);
         const userSnap = await getDoc(userRef);
 
         if (userSnap.exists()) {
-            const data = userSnap.data();
-            userPointsDisplay.textContent = data.rewardPoints || 0;
+            userPointsDisplay.textContent = userSnap.data().rewardPoints || 0;
         } else {
-            await setDoc(userRef, { rewardPoints: 0, taskCompleted: false }, { merge: true });
+            await setDoc(userRef, { rewardPoints: 0, pendingTask: false }, { merge: true });
             userPointsDisplay.textContent = 0;
         }
     }
 
-    // ✅ Handle "Start Task" button click
+    // ✅ Start Task Button Click
     startTaskButton.addEventListener("click", async () => {
         if (!currentUser) return;
 
-        // Set `pendingTask = true` before redirecting
-        const userRef = doc(db, "users", currentUser.uid);
-        await updateDoc(userRef, { pendingTask: true });
+        // ✅ Generate a unique session ID (timestamp-based)
+        const sessionId = Date.now();
+        console.log("Generated Session ID:", sessionId);
 
-        // Redirect to verify.html
-        window.location.href = "verify.html";
+        // ✅ Set task as "pending" in Firestore
+        const userRef = doc(db, "users", currentUser.uid);
+        await updateDoc(userRef, { pendingTask: sessionId });
+        console.log("Stored in Firestore:", sessionId);
+
+        // ✅ Redirect to the short link with session ID
+        window.location.href = `https://adlink.click/st?api=7c0188129805980a4249193b317141249db63175&url=https://madmusic916.github.io/myweb/dust.html?session=${sessionId}`;
     });
 
-    // ✅ Handle "Get Points" button click
-    getPointsButton.addEventListener("click", async () => {
+    // ✅ Function to check if user came back from the short link
+    async function checkReferral() {
         if (!currentUser) return;
 
-        const userRef = doc(db, "users", currentUser.uid);
-        const userSnap = await getDoc(userRef);
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get("session");
 
-        if (userSnap.exists()) {
-            const userData = userSnap.data();
+        console.log("Extracted Session ID from URL:", sessionId);
 
-            if (userData.taskCompleted) {
-                let currentPoints = userData.rewardPoints || 0;
-                let newPoints = currentPoints + 10; // Reward 10 points
+        if (sessionId) {
+            const userRef = doc(db, "users", currentUser.uid);
+            const userSnap = await getDoc(userRef);
 
-                await updateDoc(userRef, { rewardPoints: newPoints, taskCompleted: false });
-                userPointsDisplay.textContent = newPoints;
-                alert("You earned 10 points!");
+            if (userSnap.exists()) {
+                const storedSession = userSnap.data().pendingTask;
+                console.log("Stored Pending Task in Firestore:", storedSession);
 
-            } else {
-                alert("You must complete the task first!");
+                // ✅ Convert session ID to number before comparing
+                if (Number(sessionId) === storedSession) {
+                    // ✅ Award points since the user completed the short link
+                    const newPoints = (userSnap.data().rewardPoints || 0) + 10; // Reward 10 points
+                    await updateDoc(userRef, { rewardPoints: newPoints, pendingTask: false });
+
+                    userPointsDisplay.textContent = newPoints; // Update UI
+                    alert("Congratulations! You have earned 10 points.");
+                } else {
+                    alert("You must complete the short link task first!");
+                }
             }
         }
-    });
+    }
 
     // ✅ Handle Logout
     logoutButton.addEventListener("click", async () => {
