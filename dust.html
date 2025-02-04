@@ -92,10 +92,14 @@
                 userPointsDisplay.textContent = userData.rewardPoints || 0;
 
                 // ✅ Disable completed tasks
-                const completedTasks = userData.completedTasks || [];
+                const now = Date.now();
+                const taskCompletionTimes = userData.taskCompletionTimes || {};
+
                 taskButtons.forEach(button => {
                     const taskId = button.getAttribute("data-task");
-                    if (completedTasks.includes(taskId)) {
+                    const lastCompletedTime = taskCompletionTimes[taskId] || 0;
+
+                    if (completedTasks.includes(taskId) && now - lastCompletedTime < 24 * 60 * 60 * 1000) {
                         button.disabled = true;
                         button.classList.add("disabled");
                     } else {
@@ -104,6 +108,7 @@
                         button.addEventListener("click", () => startTask(taskId));
                     }
                 });
+
 
             } else {
                 // ✅ Initialize new user data
@@ -216,7 +221,8 @@
                 pendingTask: false,
                 taskStartTime: null,
                 lastCompletedTask: Number(sessionId),
-                completedTasks: completedTasks
+                completedTasks: completedTasks,
+                [`taskCompletionTimes.${taskId}`]: Date.now() // Store timestamp
             });
 
             userPointsDisplay.textContent = newPoints;
@@ -226,7 +232,8 @@
                     button.classList.add("disabled");
                 }
             });
-        } else {
+        }
+        else {
             alert("Invalid session ID!");
         }
     }
