@@ -116,7 +116,7 @@
                     await updateDoc(userRef, { rewardPoints: newPoints, pendingTask: false });
 
                     userPointsDisplay.textContent = newPoints; // Update UI
-                    alert("Congratulations! You have earned 10 points.");
+                   
                 } else {
                     alert("You must complete the short link task first!");
                 }
