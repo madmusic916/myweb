@@ -21,7 +21,6 @@
             padding: 20px;
             margin: 100px auto;
             box-shadow: 0px 4px 6px rgba(60, 107, 211, 0.71);
-            transition: margin-left 0.3s ease;
         }
 
         .button-container {
@@ -64,20 +63,21 @@
         <button class="btn" id="btn4">Task 4</button>
         <button class="btn" id="btn5">Task 5</button>
     </div>
+
+    <p id="statusMessage"></p>
 </div>
 
 <script>
+    let currentUser = null;
+
     async function checkAuthStatus() {
         try {
-            const response = await fetch('http://localhost:3000/me', {
-                method: 'GET',
-                credentials: 'include'
-            });
+            const response = await fetch('http://localhost:3000/me', { credentials: 'include' });
 
             if (response.ok) {
-                const data = await response.json();
-                document.getElementById("userNameone").textContent = data.username;
-                loadUserPoints(data.uid);
+                currentUser = await response.json();
+                document.getElementById("userNameone").textContent = currentUser.username;
+                loadUserPoints(currentUser.uid);
             } else {
                 window.location.href = "index.html";
             }
@@ -89,10 +89,7 @@
 
     async function loadUserPoints(uid) {
         try {
-            const response = await fetch(`http://localhost:3000/user/${uid}`, {
-                method: 'GET',
-                credentials: 'include'
-            });
+            const response = await fetch(`http://localhost:3000/user/${uid}`, { credentials: 'include' });
 
             if (response.ok) {
                 const data = await response.json();
@@ -109,50 +106,72 @@
             if (response.ok) {
                 const taskLinks = await response.json();
 
-                document.getElementById("btn1").onclick = async () => {
-                    const userData = await fetch("http://localhost:3000/me", { credentials: "include" });
-                    if (!userData.ok) {
-                        console.warn("User not authenticated.");
-                        return;
-                    }
-                    const user = await userData.json();
-                    const uid = user.uid;
-
-                    // Open the short link with UID as a query parameter
-                    const shortLink = `${taskLinks.task1}&uid=${uid}`;
-                    window.open(shortLink, "_blank");
-                };
+                document.getElementById("btn1").onclick = () => openShortLink(taskLinks.task1, "task1");
+                document.getElementById("btn2").onclick = () => openShortLink(taskLinks.task2, "task2");
+                document.getElementById("btn3").onclick = () => openShortLink(taskLinks.task3, "task3");
+                document.getElementById("btn4").onclick = () => openShortLink(taskLinks.task4, "task4");
+                document.getElementById("btn5").onclick = () => openShortLink(taskLinks.task5, "task5");
             }
         } catch (error) {
             console.error("Error fetching task links:", error);
         }
     }
 
+    function openShortLink(shortLink, taskName) {
+        if (!currentUser) {
+            alert("User not authenticated!");
+            return;
+        }
 
-    async function sendCompletionReward() {
-        try {
-            const response = await fetch("http://localhost:3000/reward", {
-                method: "POST",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ points: 10 })
-            });
-            if (response.ok) {
-                console.log("Reward added successfully");
-                checkAuthStatus();
-            } else {
-                console.warn("Failed to add reward");
+        const uid = currentUser.uid;
+        window.open(`${shortLink}&uid=${uid}`, "_blank");
+
+        // Store which task was completed
+        localStorage.setItem("lastCompletedTask", taskName);
+
+        // After opening the short link, reload to check if the user completed the task
+        setTimeout(() => {
+            window.location.href = `dust.html?uid=${uid}&task=${taskName}`;
+        }, 3000);
+    }
+
+    async function checkForCompletion() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const uid = urlParams.get("uid");
+        const task = urlParams.get("task");
+
+        if (uid && task) {
+            document.getElementById("statusMessage").textContent = "Verifying your reward...";
+
+            try {
+                const response = await fetch("http://localhost:3000/reward", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ uid: uid, points: 10, task: task })
+                });
+
+                if (response.ok) {
+                    document.getElementById("statusMessage").textContent = "Reward added successfully!";
+                    loadUserPoints(uid);
+
+                    // Clear URL parameters to prevent duplicate rewards
+                    history.replaceState({}, document.title, "dust.html");
+                } else {
+                    document.getElementById("statusMessage").textContent = "Failed to update reward points.";
+                }
+            } catch (error) {
+                console.error("Error updating reward:", error);
+                document.getElementById("statusMessage").textContent = "Error processing reward.";
             }
-        } catch (error) {
-            console.error("Error sending reward data:", error);
         }
     }
 
     document.addEventListener("DOMContentLoaded", function () {
         checkAuthStatus();
         loadTaskLinks();
+        checkForCompletion();
     });
 </script>
 </body>
