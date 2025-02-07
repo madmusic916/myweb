@@ -123,9 +123,60 @@
         }
     }
 
+    // ✅ Start Task Function (Redirect to Short Link)
+    async function startTask(taskId, taskUrl) {
+        if (!currentUser) return;
+
+        const sessionId = Date.now();
+        console.log(`Starting Task ${taskId} - Session ID:`, sessionId);
+
+        await fetch("http://localhost:3000/update-task", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                uid: currentUser.uid,
+                sessionId,
+                taskId
+            })
+        });
+
+        window.location.href = `${taskUrl}?session=${sessionId}&task=${taskId}`;
+    }
+
+    // ✅ Check if User Returned from Short Link
+    async function checkReferral() {
+        if (!currentUser) return;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get("session");
+        const taskId = urlParams.get("task");
+
+        if (!sessionId || !taskId) return;
+
+        const referrer = document.referrer;
+
+        const response = await fetch("http://localhost:3000/complete-task", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                uid: currentUser.uid,
+                sessionId,
+                taskId,
+                referrer
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert("Task completed! You've earned 10 points.");
+            document.getElementById("userPointsone").textContent = result.newPoints;
+        } else {
+            alert(result.error);
+        }
+    }
+
     document.addEventListener("DOMContentLoaded", checkAuthStatus);
-     // ✅ Run auth check when page loads
-    checkAuthStatus();
 </script>
 
 
