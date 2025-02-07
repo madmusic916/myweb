@@ -124,7 +124,7 @@
         }
 
         const uid = currentUser.uid;
-        window.open(`${shortLink}&uid=${uid}`, "_blank");
+        window.open(`${shortLink}?uid=${uid}`, "_blank");
 
         // Store which task was completed
         localStorage.setItem("lastCompletedTask", taskName);
