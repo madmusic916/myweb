@@ -108,19 +108,26 @@
             const response = await fetch("http://localhost:3000/task-links");
             if (response.ok) {
                 const taskLinks = await response.json();
+
                 document.getElementById("btn1").onclick = async () => {
-                    window.open(taskLinks.task1, "_blank");
-                    await sendCompletionReward();
+                    const userData = await fetch("http://localhost:3000/me", { credentials: "include" });
+                    if (!userData.ok) {
+                        console.warn("User not authenticated.");
+                        return;
+                    }
+                    const user = await userData.json();
+                    const uid = user.uid;
+
+                    // Open the short link with UID as a query parameter
+                    const shortLink = `${taskLinks.task1}&uid=${uid}`;
+                    window.open(shortLink, "_blank");
                 };
-                document.getElementById("btn2").onclick = () => window.location.href = taskLinks.task2;
-                document.getElementById("btn3").onclick = () => window.location.href = taskLinks.task3;
-                document.getElementById("btn4").onclick = () => window.location.href = taskLinks.task4;
-                document.getElementById("btn5").onclick = () => window.location.href = taskLinks.task5;
             }
         } catch (error) {
             console.error("Error fetching task links:", error);
         }
     }
+
 
     async function sendCompletionReward() {
         try {
