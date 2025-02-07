@@ -56,17 +56,52 @@
         }
 
 
+        .wrapper {
+            display: flex;
+            gap: 0.5px; /* Space between containers */
+
+        }
+
 
         .container {
-            max-width: 500px;
-            background: white;
+            background: linear-gradient(135deg, #d370da, #e318e0); /* Gradient blue background */
+            color: white; /* White text for contrast */
+            border-radius: 8px; /* Smooth rounded corners */
+            width: 500px;
             padding: 20px;
-            margin: 100px auto 20px;
+            margin: 100px;
             border-radius: 10px;
             box-shadow: 0px 4px 6px rgba(60, 107, 211, 0.71);
             margin-left: 250px; /* Shift right to accommodate the sidebar */
+            margin-right: 0.5px;
             transition: margin-left 0.3s ease;
         }
+
+        /* Styling for the individual username and points */
+        .user-info p {
+            margin: 10px 0; /* Space between elements */
+        }
+
+        /* Styling for the numbers */
+        .user-info span {
+            font-size: 22px; /* Bigger numbers */
+            font-weight: bold;
+            color: #FFD700; /* Gold color for points */
+        }
+
+        .pricecontainer-right {
+            background: linear-gradient(135deg, #4A90E2, #0044cc); /* Gradient blue background */
+            color: white; /* White text for contrast */
+            border-radius: 8px; /* Smooth rounded corners */
+            width: 500px;
+            padding: 20px;
+            margin: 100px;
+            margin-left: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 6px rgba(60, 107, 211, 0.71);
+            transition: margin-left 0.3s ease;
+        }
+
         /* Initially hide the menu toggle */
         .menu-toggle {
             display: none; /* Hide by default */
@@ -86,7 +121,7 @@
             left: 0;
             width: 220px; /* Slightly wider for better readability */
             height: calc(100vh - 80px); /* Adjusted height for consistency */
-            background-color: #ffffff;
+            background: linear-gradient(135deg, #0000FFFF, #5770ea); /* Gradient blue background */
             box-shadow: 0px 4px 6px rgba(60, 107, 211, 0.71);
             padding: 20px;
             box-sizing: border-box;
@@ -153,26 +188,12 @@
 
 
 
-        button {
-            background-color: red;
-            color: white;
-            border: none;
-            padding: 10px;
-            margin-top: 20px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        #getPointsButton {
-            background-color: green;
-        }
-
         @media screen and (max-width: 768px) {
             /* Adjust header */
             header {
                 flex-direction: column;
                 text-align: center;
-                padding: 5px;
+                padding: 15px 5px; /* Reduce padding on mobile */;
             }
             /* Fix content being hidden under the header */
             body {
@@ -181,12 +202,31 @@
                 }
             }
 
-            .left-content, .right-content {
-                flex-direction: column;
-                align-items: center;
-                gap: 5px;
-
+            /* Hide userName and userPoints in the header */
+            header .right-content {
+                display: none; /* Hide in header */
             }
+
+            .container, .pricecontainer-right {
+                width: 60%; /* Make the containers very small */
+                padding: 10px; /* Reduce padding */
+                margin: 10px auto; /* Center them with smaller margins */
+                font-size: 14px; /* Reduce text size */
+            }
+
+
+            .container h1, .pricecontainer-right h1 {
+                font-size: 16px; /* Decrease heading size */
+            }
+
+            .user-info p, .pricecontainer-right p {
+                font-size: 13px; /* Smaller text for better fit */
+            }
+
+            .wrapper {
+                gap: 5px; /* Minimize space between the containers */
+            }
+
 
 
             /* Show sidebar toggle */
@@ -205,7 +245,7 @@
                 left: 0;
                 top: 60px;
                 height: 100vh;
-                background: white;
+                background: linear-gradient(135deg, #0000FFFF, #5770ea); /* Gradient blue background */
                 box-shadow: 2px 0 5px rgba(60, 107, 211, 0.71);
                 transition: transform 0.3s ease;
                 z-index: 1100; /* Ensure it's above the header */
@@ -222,11 +262,55 @@
             }
 
 
-            /* Adjust main content */
+            .wrapper {
+                flex-direction: column; /* Stack items vertically */
+                align-items: center; /* Center align items */
+            }
+
+            .container, .pricecontainer-right {
+                width: 90%; /* Make the containers take full width */
+                margin: 20px 0; /* Adjust margin for small screens */
+                margin-left: 0; /* Remove left margin */
+            }
+
             .container {
-                max-width: 90%;
-                margin-left: auto;
-                margin-right: auto;
+                margin-top: 100px;
+
+            }
+
+            .pricecontainer-right {
+                margin-top: 15px; /* Add space between the two containers */
+            }
+
+
+
+            /* Clock Container (Ensure it doesn't overflow) */
+            #clock-container {
+                text-align: center;
+                background: blue;
+                padding: 10px;
+                border-radius: 6px;
+                width: 100%; /* Ensure it takes full width */
+                position: fixed; /* Fix the clock at the bottom of the screen */
+                bottom: 80px; /* Align to the bottom */
+                left: 0; /* Align to the left */
+                box-sizing: border-box; /* Include padding in the element's width */
+            }
+
+            /* Server Time Header */
+            #clock-container h1 {
+                font-size: 1.4rem; /* Increased font size for better visibility */
+                font-weight: normal;
+                margin-bottom: 5px;
+                color: white;
+            }
+
+            /* Clock */
+            #clock {
+                font-size: 1.5rem; /* Increase clock font size */
+                font-weight: bold;
+                color: white;
+                padding: 5px 10px;
             }
         }
 
@@ -234,11 +318,12 @@
 </head>
 <body>
 
+
 <!-- Ribbon Header -->
 <header>
     <div class="left-content">
         <span class="menu-toggle" onclick="toggleSidebar()">☰</span>
-        <img src="logo.png" alt="My Logo" class="logo">
+        <img src="../images/logo.png" alt="My Logo" class="logo">
         <span>DigiByte Rewards</span>
     </div>
     <div class="right-content">
@@ -265,106 +350,182 @@
 </div>
 
 
+<div class="wrapper">
+    <div class="container">
+        <h1>Welcome to DigiByte Rewards!</h1>
+        <p>You are successfully logged in.</p>
 
-<div class="container">
-    <h1>Welcome to the Home Page!</h1>
-    <p>You are successfully logged in.</p>
+        <!-- Add a new div to hold user information -->
+        <!-- Stylish user info box -->
+        <div class="user-info">
+            <p><strong>Username:</strong> <span id="userNameone">Loading...</span></p>
+            <p><strong>Points:</strong> <span id="userPointsone">0</span></p>
+        </div>
 
-    <p><strong>Username:</strong> <span id="userName">Loading...</span></p>
-    <p><strong>Points:</strong> <span id="userPoints">0</span></p>
+    </div>
 
-    <button id="getPointsButton">Get Points</button>
-    <button id="logoutButton">Logout</button>
+    <div class="pricecontainer-right">
+        <h1>DigiByte Live Price & User Earnings</h1>
+        <p>DGB Price: <span id="jpprice">Loading...</span></p>
+        <p>Your Reward Points: <span id="jppoints">Loading...</span></p>
+        <p>You Earned: <span id="jpearnedDGB">Calculating...</span> DGB</p>
+
+    </div>
+
 </div>
 
 <script>
     function toggleSidebar() {
-        document.getElementById('sidebar').classList.toggle('active');
+        const sidebar = document.getElementById('sidebar');
+        sidebar.classList.toggle('active');
+
+        if (sidebar.classList.contains('active')) {
+            // Add event listener only if the sidebar is opened
+            document.addEventListener('click', closeSidebarOutside);
+        }
+    }
+
+    function closeSidebarOutside(event) {
+        const sidebar = document.getElementById('sidebar');
+        const menuToggle = document.querySelector('.menu-toggle');
+
+        // Check if the clicked element is NOT inside the sidebar or the menu toggle button
+        if (!sidebar.contains(event.target) && !menuToggle.contains(event.target)) {
+            sidebar.classList.remove('active');
+            document.removeEventListener('click', closeSidebarOutside); // Remove event listener once closed
+        }
     }
 </script>
 
-<script type="module">
+<script>
 
-    // Import Firebase services
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js";
-    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore.js";
-    import { firebaseConfig } from "./firebaseConfig.js";
+    const priceElement = document.getElementById("jpprice");
+    const pointsElement = document.getElementById("jppoints");
+    const earnedDGBElement = document.getElementById("jpearnedDGB");
 
-    // 🔥 Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    let liveDGBPrice = 0;  // Stores the live DGB price
+    let userPoints = 0;    // Stores the user's reward points
 
-    // Get UI elements
-    const userNameDisplay = document.getElementById("userName");
-    const userPointsDisplay = document.getElementById("userPoints");
-    const getPointsButton = document.getElementById("getPointsButton");
+    async function checkAuthStatus() {
+        try {
+            const response = await fetch('http://localhost:3000/me', {
+                method: 'GET',
+                credentials: 'include'
+            });
 
-    let currentUser;
-    // ✅ Check authentication state
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            currentUser = user;
-            userNameDisplay.textContent = user.displayName || "No Username";
+            if (response.ok) {
+                const data = await response.json();
+                console.log("User is authenticated:", data);
 
-            // Load user points
-            await loadUserPoints(user.uid);
-        } else {
-            window.location.href = "index.html"; // Redirect if not logged in
-        }
-    });
+                // ✅ Now use username instead of uid
+                document.getElementById("userName").textContent = data.username;
+                document.getElementById("userNameone").textContent = data.username;
 
-    // ✅ Load user points from Firestore
-    async function loadUserPoints(uid) {
-        const userRef = doc(db, "users", uid);
-        const userSnap = await getDoc(userRef);
-
-        if (userSnap.exists()) {
-            const data = userSnap.data();
-            userPointsDisplay.textContent = data.rewardPoints || 0;
-        } else {
-            await setDoc(userRef, { rewardPoints: 0 }, { merge: true });
-            userPointsDisplay.textContent = 0;
+                // Fetch user points
+                loadUserPoints(data.uid);
+            } else {
+                console.warn("User is NOT authenticated. Redirecting...");
+                window.location.href = "index.html";
+            }
+        } catch (error) {
+            console.error("Error checking auth:", error);
+            window.location.href = "index.html";
         }
     }
 
-    // ✅ Add points when button is clicked
-    getPointsButton.addEventListener("click", async () => {
-        if (!currentUser) return;
+    let rewardPoints = 0; // Global variable to store the user's reward points
 
-        const userRef = doc(db, "users", currentUser.uid);
-        const userSnap = await getDoc(userRef);
+    async function loadUserPoints(uid) {
+        try {
+            const response = await fetch(`http://localhost:3000/user/${uid}`, {
+                method: 'GET',
+                credentials: 'include'
+            });
 
-        if (userSnap.exists()) {
-            let currentPoints = userSnap.data().rewardPoints || 0;
-            let newPoints = currentPoints + 10; // Add 10 points
-
-            await updateDoc(userRef, { rewardPoints: newPoints });
-            userPointsDisplay.textContent = newPoints;
+            if (response.ok) {
+                const data = await response.json();
+                rewardPoints = data.rewardPoints || 0;  // Update the global rewardPoints variable
+                document.getElementById("userPoints").textContent = rewardPoints;
+                document.getElementById("userPointsone").textContent = rewardPoints;
+                document.getElementById("jppoints").textContent = rewardPoints;
+            } else {
+                console.warn("Failed to load user points.");
+            }
+        } catch (error) {
+            console.error("Error fetching user points:", error);
         }
-    });
+        calculateEarnedDGB(); // Call this after points are updated
+    }
 
-    // ✅ Logout Function
-    document.getElementById("logoutButton").addEventListener("click", async () => {
-        await signOut(auth);
-        window.location.href = "index.html"; // Redirect to login
-    });
 
-    // Logout when clicking the menu logout
+
     document.getElementById("menuLogout").addEventListener("click", async () => {
-        await signOut(auth);
-        window.location.href = "index.html"; // Redirect to login page
+        try {
+            // Call the logout route on the server to clear the JWT cookie
+            const response = await fetch('http://localhost:3000/logout', {
+                method: 'POST',
+                credentials: 'include',  // Ensure that cookies are sent with the request
+            });
+
+            if (response.ok) {
+                window.location.href = "index.html"; // Redirect to login page after logout
+            } else {
+                console.error("Logout failed");
+            }
+        } catch (error) {
+            console.error("Error logging out:", error);
+        }
     });
 
     //open enrn page when click on earn menu.
-    document.getElementById("earnpage").addEventListener("click", async () => {
+    document.getElementById("earnpage").addEventListener("click", async (event) => {
+        event.preventDefault(); // Stops the default anchor action
         window.location.href = "dust.html";
     });
 
+    document.addEventListener("DOMContentLoaded", function () {
+        const someElement = document.getElementById("someElement");
+        if (someElement) {
+            someElement.addEventListener("click", someFunction);
+        }
+    });
+
+    // ✅ Function to Fetch Live DGB Price
+    async function fetchDigiBytePrice() {
+        try {
+            const response = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=digibyte&vs_currencies=usd", { cache: "no-cache" });
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
+            const data = await response.json();
+            if (data.digibyte && data.digibyte.usd) {
+                liveDGBPrice = data.digibyte.usd;
+                localStorage.setItem("dgbPrice", liveDGBPrice);
+                priceElement.innerText = `$${liveDGBPrice.toFixed(6)} USD`;
+            } else {
+                throw new Error("Invalid response data");
+            }
+        } catch (error) {
+            console.error("Error fetching DigiByte price:", error);
+            liveDGBPrice = parseFloat(localStorage.getItem("dgbPrice")) || 0;
+            priceElement.innerText = `Last Price: $${liveDGBPrice.toFixed(6)} USD`;
+        }
+        calculateEarnedDGB(); // ✅ Update earnings when price updates
+    }
+
+    // ✅ Function to Calculate Earned DGB
+    function calculateEarnedDGB() {
+        if (liveDGBPrice > 0) {
+            let usdEarned = (rewardPoints / 50) * 0.01;  // Convert points to USD
+            let earnedDGB = usdEarned / liveDGBPrice;  // Convert USD to DGB
+            earnedDGBElement.innerText = earnedDGB.toFixed(6); // Show up to 6 decimal places
+        } else {
+            earnedDGBElement.innerText = "Waiting for price...";
+        }
+    }
 
 
 </script>
+
 
 <script>
     let hours, minutes, seconds;
@@ -372,7 +533,7 @@
     async function getServerTime() {
         try {
             // Fetch time from TimeAPI.io
-            const response = await fetch("https://www.timeapi.io/api/Time/current/zone?timeZone=UTC");
+            const response = await fetch("https://www.timeapi.io/api/Time/current/zone?timeZone=Asia/Kolkata\n");
 
             if (!response.ok) {
                 throw new Error("Network response was not ok");
@@ -420,7 +581,15 @@
 
     // Fetch server time on page load
     getServerTime();
-</script>
 
+    // ✅ Fetch Live DGB Price Immediately
+    fetchDigiBytePrice();
+
+    // ✅ Run auth check when page loads
+    checkAuthStatus();
+
+    // ✅ Refresh Price & Earnings Every 2 Minutes
+    setInterval(fetchDigiBytePrice, 120000);
+</script>
 </body>
 </html>
