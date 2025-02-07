@@ -13,36 +13,27 @@
             background-color: #f4f4f9;
         }
 
+
         .container {
-            background: linear-gradient(135deg, #d370da, #e318e0);
-            color: white;
-            border-radius: 10px;
+            background: linear-gradient(135deg, #d370da, #e318e0); /* Gradient blue background */
+            color: white; /* White text for contrast */
+            border-radius: 8px; /* Smooth rounded corners */
             width: 500px;
             padding: 20px;
-            margin: 100px auto;
+            margin: 100px;
+            border-radius: 10px;
             box-shadow: 0px 4px 6px rgba(60, 107, 211, 0.71);
+            margin-left: 250px; /* Shift right to accommodate the sidebar */
+            margin-right: 0.5px;
             transition: margin-left 0.3s ease;
         }
 
-        .task-button {
-            display: block;
-            margin: 10px auto;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            background-color: white;
-            color: black;
-            border: none;
-            border-radius: 5px;
-            transition: background 0.3s;
-        }
 
-        .task-button:hover {
-            background-color: #ddd;
-        }
+
     </style>
 </head>
 <body>
+
 
 <!-- Ribbon Header -->
 <header>
@@ -51,38 +42,48 @@
     </div>
 </header>
 
-<div class="container">
-    <h1>Welcome to DigiByte Rewards!</h1>
-    <p>You are successfully logged in.</p>
 
-    <div class="user-info">
-        <p><strong>Username:</strong> <span id="userNameone">Loading...</span></p>
-        <p><strong>Points:</strong> <span id="userPointsone">0</span></p>
+<div class="wrapper">
+    <div class="container">
+        <h1>Welcome to DigiByte Rewards!</h1>
+        <p>You are successfully logged in.</p>
+
+        <div class="user-info">
+            <p><strong>Username:</strong> <span id="userNameone">Loading...</span></p>
+            <p><strong>Points:</strong> <span id="userPointsone">0</span></p>
+        </div>
+
     </div>
 
-    <!-- Task Buttons with Specific IDs -->
-    <button id="task1" class="task-button">Task 1</button>
-    <button id="task2" class="task-button">Task 2</button>
-    <button id="task3" class="task-button">Task 3</button>
-    <button id="task4" class="task-button">Task 4</button>
-    <button id="task5" class="task-button">Task 5</button>
 </div>
 
 <script>
-    let currentUser = null;
+
+    const priceElement = document.getElementById("jpprice");
+    const pointsElement = document.getElementById("jppoints");
+    const earnedDGBElement = document.getElementById("jpearnedDGB");
+
+
 
     async function checkAuthStatus() {
         try {
-            const response = await fetch("http://localhost:3000/me", { credentials: "include" });
+            const response = await fetch('http://localhost:3000/me', {
+                method: 'GET',
+                credentials: 'include'
+            });
 
             if (response.ok) {
                 const data = await response.json();
-                currentUser = data;
+                console.log("User is authenticated:", data);
+
+                // ✅ Now use username instead of uid
+
                 document.getElementById("userNameone").textContent = data.username;
+
+                // Fetch user points
                 loadUserPoints(data.uid);
-                loadTaskLinks();
-                checkReferral();
             } else {
+                console.warn("User is NOT authenticated. Redirecting...");
                 window.location.href = "index.html";
             }
         } catch (error) {
@@ -91,94 +92,40 @@
         }
     }
 
+    let rewardPoints = 0; // Global variable to store the user's reward points
+
     async function loadUserPoints(uid) {
         try {
-            const response = await fetch(`http://localhost:3000/user/${uid}`, { credentials: "include" });
+            const response = await fetch(`http://localhost:3000/user/${uid}`, {
+                method: 'GET',
+                credentials: 'include'
+            });
 
             if (response.ok) {
                 const data = await response.json();
-                document.getElementById("userPointsone").textContent = data.rewardPoints;
+                rewardPoints = data.rewardPoints || 0;  // Update the global rewardPoints variable
+
+                document.getElementById("userPointsone").textContent = rewardPoints;
+                document.getElementById("jppoints").textContent = rewardPoints;
+            } else {
+                console.warn("Failed to load user points.");
             }
         } catch (error) {
             console.error("Error fetching user points:", error);
         }
+
     }
 
-    async function loadTaskLinks() {
-        try {
-            const response = await fetch("http://localhost:3000/task-links", { credentials: "include" });
-
-            if (response.ok) {
-                const links = await response.json();
-
-                for (let id in links) {
-                    const button = document.getElementById(id);
-                    if (button) {
-                        button.onclick = () => startTask(id, links[id]);
-                    }
-                }
-            }
-        } catch (error) {
-            console.error("Error fetching task links:", error);
+    document.addEventListener("DOMContentLoaded", function () {
+        const someElement = document.getElementById("someElement");
+        if (someElement) {
+            someElement.addEventListener("click", someFunction);
         }
-    }
+    });
 
-    // ✅ Start Task Function (Redirect to Short Link)
-    async function startTask(taskId, taskUrl) {
-        if (!currentUser) return;
+    // ✅ Run auth check when page loads
+    checkAuthStatus();
 
-        const sessionId = Date.now();
-        console.log(`Starting Task ${taskId} - Session ID:`, sessionId);
-
-        await fetch("http://localhost:3000/update-task", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                uid: currentUser.uid,
-                sessionId,
-                taskId
-            })
-        });
-
-        window.location.href = `${taskUrl}?session=${sessionId}&task=${taskId}`;
-    }
-
-    // ✅ Check if User Returned from Short Link
-    async function checkReferral() {
-        if (!currentUser) return;
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const sessionId = urlParams.get("session");
-        const taskId = urlParams.get("task");
-
-        if (!sessionId || !taskId) return;
-
-        const referrer = document.referrer;
-
-        const response = await fetch("http://localhost:3000/complete-task", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                uid: currentUser.uid,
-                sessionId,
-                taskId,
-                referrer
-            })
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            alert("Task completed! You've earned 10 points.");
-            document.getElementById("userPointsone").textContent = result.newPoints;
-        } else {
-            alert(result.error);
-        }
-    }
-
-    document.addEventListener("DOMContentLoaded", checkAuthStatus);
 </script>
-
-
 </body>
 </html>
