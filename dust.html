@@ -12,174 +12,135 @@
             padding: 0;
             background-color: #f4f4f9;
         }
+
         .container {
-            display: none; /* Hide content until data is loaded */
-            margin-top: 50px;
+            background: linear-gradient(135deg, #d370da, #e318e0);
+            color: white;
+            border-radius: 10px;
+            width: 500px;
+            padding: 20px;
+            margin: 100px auto;
+            box-shadow: 0px 4px 6px rgba(60, 107, 211, 0.71);
+            transition: margin-left 0.3s ease;
         }
+
         .task-button {
             display: block;
             margin: 10px auto;
             padding: 10px 20px;
             font-size: 16px;
             cursor: pointer;
+            background-color: white;
+            color: black;
+            border: none;
+            border-radius: 5px;
+            transition: background 0.3s;
         }
-        .disabled {
-            background-color: grey;
-            cursor: not-allowed;
-        }
-        #loading {
-            font-size: 20px;
-            font-weight: bold;
-            margin-top: 100px;
+
+        .task-button:hover {
+            background-color: #ddd;
         }
     </style>
 </head>
 <body>
 
-<!-- Preloader -->
-<div id="loading">Loading...</div>
+<!-- Ribbon Header -->
+<header>
+    <div class="left-content">
+        <span>DigiByte Rewards</span>
+    </div>
+</header>
 
-<!-- Main Content -->
-<div class="container" id="mainContent">
-    <h1>Welcome to the Home Page!</h1>
+<div class="container">
+    <h1>Welcome to DigiByte Rewards!</h1>
     <p>You are successfully logged in.</p>
 
-    <p><strong>Username:</strong> <span id="userName">Loading...</span></p>
-    <p><strong>Points:</strong> <span id="userPoints">0</span></p>
-
-    <div id="taskButtons">
-        <button class="task-button" data-task="1">Task 1</button>
-        <button class="task-button" data-task="2">Task 2</button>
-        <button class="task-button" data-task="3">Task 3</button>
-        <button class="task-button" data-task="4">Task 4</button>
-        <button class="task-button" data-task="5">Task 5</button>
+    <div class="user-info">
+        <p><strong>Username:</strong> <span id="userNameone">Loading...</span></p>
+        <p><strong>Points:</strong> <span id="userPointsone">0</span></p>
     </div>
 
-    <button id="logoutButton">Logout</button>
+    <!-- Task Buttons with Specific IDs -->
+    <button id="task1" class="task-button">Task 1</button>
+    <button id="task2" class="task-button">Task 2</button>
+    <button id="task3" class="task-button">Task 3</button>
+    <button id="task4" class="task-button">Task 4</button>
+    <button id="task5" class="task-button">Task 5</button>
 </div>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-app.js";
-    import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore.js";
-    import { firebaseConfig } from "./firebaseConfig.js";
-    import { serverTimestamp } from "https://www.gstatic.com/firebasejs/9.21.0/firebase-firestore.js";
+<script>
+    let currentUser = null;
 
-    // ✅ Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    // ✅ Get UI elements
-    const userNameDisplay = document.getElementById("userName");
-    const userPointsDisplay = document.getElementById("userPoints");
-    const taskButtons = document.querySelectorAll(".task-button");
-    const logoutButton = document.getElementById("logoutButton");
-    const loadingScreen = document.getElementById("loading");
-    const mainContent = document.getElementById("mainContent");
-    let currentUser;
-
-    // ✅ Load all user data at once
-    async function loadUserData(uid) {
-        const userRef = doc(db, "users", uid);
-
+    async function checkAuthStatus() {
         try {
-            const userSnap = await getDoc(userRef);
-            if (userSnap.exists()) {
-                const userData = userSnap.data();
+            const response = await fetch("http://localhost:3000/me", { credentials: "include" });
 
-                userNameDisplay.textContent = currentUser.displayName || "No Username";
-                userPointsDisplay.textContent = userData.rewardPoints || 0;
-
-                const completedTasks = userData.completedTasks || [];
-                const taskCompletionTimes = userData.taskCompletionTimes || {}; // ✅ Get stored timestamps
-                const now = Date.now();
-
-                taskButtons.forEach(button => {
-                    const taskId = button.getAttribute("data-task");
-                    const lastCompletedTimeObj = taskCompletionTimes[taskId];
-
-                    let lastCompletedTime = 0;
-                    if (lastCompletedTimeObj) {
-                        lastCompletedTime = lastCompletedTimeObj.seconds * 1000; // ✅ Convert Firestore timestamp to milliseconds
-                    }
-
-                    if (completedTasks.includes(taskId) && now - lastCompletedTime < 24 * 60 * 60 * 1000) {
-                        // ✅ Disable button if 24 hours haven't passed
-                        button.disabled = true;
-                        button.classList.add("disabled");
-                    } else {
-                        // ✅ Enable button if 24 hours have passed
-                        button.disabled = false;
-                        button.classList.remove("disabled");
-                        button.addEventListener("click", () => startTask(taskId));
-                    }
-                });
-
+            if (response.ok) {
+                const data = await response.json();
+                currentUser = data;
+                document.getElementById("userNameone").textContent = data.username;
+                loadUserPoints(data.uid);
+                loadTaskLinks();
+                checkReferral();
             } else {
-                await setDoc(userRef, { rewardPoints: 0, completedTasks: [] }, { merge: true });
-                userNameDisplay.textContent = currentUser.displayName || "No Username";
-                userPointsDisplay.textContent = 0;
+                window.location.href = "index.html";
             }
         } catch (error) {
-            console.error("Error loading user data:", error);
+            console.error("Error checking auth:", error);
+            window.location.href = "index.html";
         }
     }
 
+    async function loadUserPoints(uid) {
+        try {
+            const response = await fetch(`http://localhost:3000/user/${uid}`, { credentials: "include" });
 
-
-    // ✅ Check authentication state
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            currentUser = user;
-            await loadUserData(user.uid);
-            // ✅ Hide loading screen and show main content
-            loadingScreen.style.display = "none";
-            mainContent.style.display = "block";
-            checkReferral();
-        } else {
-            window.location.href = "index.html"; // Redirect if not logged in
+            if (response.ok) {
+                const data = await response.json();
+                document.getElementById("userPointsone").textContent = data.rewardPoints;
+            }
+        } catch (error) {
+            console.error("Error fetching user points:", error);
         }
-    });
+    }
 
-    // ✅ Securely Load User Data & Disable Completed Tasks
-   /*/ async function loadUserData(uid) {
-        const userRef = doc(db, "users", uid);
-        const userSnap = await getDoc(userRef);
+    async function loadTaskLinks() {
+        try {
+            const response = await fetch("http://localhost:3000/task-links", { credentials: "include" });
 
-        if (userSnap.exists()) {
-            userPointsDisplay.textContent = userSnap.data().rewardPoints || 0;
+            if (response.ok) {
+                const links = await response.json();
 
-            // ✅ Get completed tasks from Firestore
-            const completedTasks = userSnap.data().completedTasks || [];
-
-            // ✅ Securely disable completed buttons
-            taskButtons.forEach(button => {
-                const taskId = button.getAttribute("data-task");
-                if (completedTasks.includes(taskId)) {
-                    button.disabled = true;
-                    button.classList.add("disabled");
-                } else {
-                    button.addEventListener("click", () => startTask(taskId));
+                for (let id in links) {
+                    const button = document.getElementById(id);
+                    if (button) {
+                        button.onclick = () => startTask(id, links[id]);
+                    }
                 }
-            });
-        } else {
-            await setDoc(userRef, { rewardPoints: 0, completedTasks: [] }, { merge: true });
-            userPointsDisplay.textContent = 0;
+            }
+        } catch (error) {
+            console.error("Error fetching task links:", error);
         }
-    }/*/
+    }
 
     // ✅ Start Task Function (Redirect to Short Link)
-    async function startTask(taskId) {
+    async function startTask(taskId, taskUrl) {
         if (!currentUser) return;
 
         const sessionId = Date.now();
         console.log(`Starting Task ${taskId} - Session ID:`, sessionId);
 
-        const userRef = doc(db, "users", currentUser.uid);
-        await updateDoc(userRef, { pendingTask: sessionId, taskStartTime: sessionId });
+        await fetch("http://localhost:3000/update-task", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                uid: currentUser.uid,
+                sessionId,
+                taskId
+            })
+        });
 
-        window.location.href = `https://adlink.click/st?api=7c0188129805980a4249193b317141249db63175&url=https://madmusic916.github.io/myweb/dust.html?session=${sessionId}&task=${taskId}`;
+        window.location.href = `${taskUrl}?session=${sessionId}&task=${taskId}`;
     }
 
     // ✅ Check if User Returned from Short Link
@@ -192,64 +153,32 @@
 
         if (!sessionId || !taskId) return;
 
-        const userRef = doc(db, "users", currentUser.uid);
-        const userSnap = await getDoc(userRef);
-        if (!userSnap.exists()) return;
+        const referrer = document.referrer;
 
-        const storedSession = userSnap.data().pendingTask;
-        const taskStartTime = userSnap.data().taskStartTime || 0;
-        const lastCompletedTask = userSnap.data().lastCompletedTask || 0;
-        const completedTasks = userSnap.data().completedTasks || [];
-        const timeElapsed = Date.now() - taskStartTime;
+        const response = await fetch("http://localhost:3000/complete-task", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                uid: currentUser.uid,
+                sessionId,
+                taskId,
+                referrer
+            })
+        });
 
-        if (timeElapsed < 10000) {
-            alert("You must complete the short link properly!");
-            return;
-        }
+        const result = await response.json();
 
-        if (!document.referrer.includes("adlink.click")) {
-            alert("Warning: We couldn’t verify if you completed the short link.");
-            return;
-        }
-
-        if (Number(sessionId) === lastCompletedTask || completedTasks.includes(taskId)) {
-            alert("You already completed this task!");
-            return;
-        }
-
-        if (Number(sessionId) === storedSession) {
-            const newPoints = (userSnap.data().rewardPoints || 0) + 10;
-            completedTasks.push(taskId);
-
-            await updateDoc(userRef, {
-                rewardPoints: newPoints,
-                pendingTask: false,
-                taskStartTime: null,
-                lastCompletedTask: Number(sessionId),
-                completedTasks: completedTasks,
-                [`taskCompletionTimes.${taskId}`]: serverTimestamp() // ✅ Secure Firestore timestamp
-            });
-
-            userPointsDisplay.textContent = newPoints;
-            taskButtons.forEach(button => {
-                if (button.getAttribute("data-task") === taskId) {
-                    button.disabled = true;
-                    button.classList.add("disabled");
-                }
-            });
-        }
-        else {
-            alert("Invalid session ID!");
+        if (result.success) {
+            alert("Task completed! You've earned 10 points.");
+            document.getElementById("userPointsone").textContent = result.newPoints;
+        } else {
+            alert(result.error);
         }
     }
 
-    // ✅ Handle Logout
-    logoutButton.addEventListener("click", async () => {
-        await signOut(auth);
-        window.location.href = "index.html";
-    });
-
+    document.addEventListener("DOMContentLoaded", checkAuthStatus);
 </script>
+
 
 </body>
 </html>
