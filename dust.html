@@ -127,7 +127,9 @@
         }
 
         const uid = currentUser.uid;
-        window.open(`${shortLink}?uid=${uid}`, "_blank");  // ✅ Correct interpolation
+
+        // ✅ Include taskName in the short link URL
+        window.open(`${shortLink}?uid=${uid}&task=${taskName}`, "_blank");
 
         // Store which task was completed
         localStorage.setItem("lastCompletedTask", taskName);
@@ -140,10 +142,11 @@
 
 
 
+
     async function checkForCompletion() {
         const urlParams = new URLSearchParams(window.location.search);
         const uid = urlParams.get("uid");
-        const task = urlParams.get("task");
+        const task = urlParams.get("task"); // ✅ Ensure we retrieve the task
 
         if (uid && task) {
             document.getElementById("statusMessage").textContent = "Verifying your reward...";
@@ -154,7 +157,7 @@
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ uid: uid, points: 10, task: task })
+                    body: JSON.stringify({ uid: uid, points: 10, task: task }) // ✅ Include the task
                 });
 
                 if (response.ok) {
@@ -170,8 +173,11 @@
                 console.error("Error updating reward:", error);
                 document.getElementById("statusMessage").textContent = "Error processing reward.";
             }
+        } else {
+            console.error("Missing UID or task in URL parameters");
         }
     }
+
 
     document.addEventListener("DOMContentLoaded", function () {
         checkAuthStatus();
