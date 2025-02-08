@@ -120,25 +120,45 @@
         }
     }
 
-    function openShortLink(shortLink, taskName) {
+    async function openShortLink(shortLink, taskName) {
         if (!currentUser) {
             alert("User not authenticated!");
             return;
         }
 
         const uid = currentUser.uid;
+        const sessionToken = generateSessionToken(); // Generate a unique token
 
-        // ✅ Include taskName in the short link URL
-        window.open(`${shortLink}?uid=${uid}&task=${taskName}`, "_blank");
-
-        // Store which task was completed
+        // Store session token locally (to use later)
+        localStorage.setItem("sessionToken", sessionToken);
         localStorage.setItem("lastCompletedTask", taskName);
 
-        // After opening the short link, reload to check if the user completed the task
-        setTimeout(() => {
-            window.location.href = `dust.html?uid=${uid}&task=${taskName}`;
-        }, 3000);
+        // ✅ Send token and task details to server before opening short link
+        try {
+            const response = await fetch("http://localhost:3000/store-token", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ uid, task: taskName, token: sessionToken })
+            });
+
+            if (!response.ok) throw new Error("Failed to store token on server");
+
+            // ✅ Open the short link (User completes the task)
+            window.open(`${shortLink}?uid=${uid}&task=${taskName}`, "_blank");
+
+            // ✅ Redirect to verification page after delay
+            setTimeout(() => {
+                window.location.href = `dust.html?uid=${uid}&task=${taskName}&token=${sessionToken}`;
+            }, 3000);
+        } catch (error) {
+            console.error("Error storing session token:", error);
+        }
     }
+
+    function generateSessionToken() {
+        return Math.random().toString(36).substr(2, 10); // Generate a random token
+    }
+
 
 
 
@@ -147,38 +167,40 @@
         const urlParams = new URLSearchParams(window.location.search);
         const uid = urlParams.get("uid");
         const task = urlParams.get("task");
+        const token = urlParams.get("token");
 
-        console.log("Extracted from URL:", { uid, task }); // ✅ Debugging
+        console.log("Extracted from URL:", { uid, task, token });
 
-        if (uid && task) {
+        if (uid && task && token) {
             document.getElementById("statusMessage").textContent = "Verifying your reward...";
 
-            try {
-                const requestBody = JSON.stringify({ uid: uid, points: 10, task: task });
-                console.log("Sending to server:", requestBody); // ✅ Debugging
+            // ✅ Check if the user was redirected from "https://blog.adlink.click/"
+            if (document.referrer.includes("https://blog.adlink.click/")) {
+                try {
+                    const response = await fetch("http://localhost:3000/reward", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ uid, task, token })
+                    });
 
-                const response = await fetch("http://localhost:3000/reward", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: requestBody
-                });
-
-                if (response.ok) {
-                    document.getElementById("statusMessage").textContent = "Reward added successfully!";
-                    loadUserPoints(uid);
-                    history.replaceState({}, document.title, "dust.html");
-                } else {
-                    console.error("Server response error:", await response.text()); // ✅ Debugging
-                    document.getElementById("statusMessage").textContent = "Failed to update reward points.";
+                    if (response.ok) {
+                        document.getElementById("statusMessage").textContent = "Reward added successfully!";
+                        loadUserPoints(uid);
+                        history.replaceState({}, document.title, "dust.html");
+                    } else {
+                        console.error("Server response error:", await response.text());
+                        document.getElementById("statusMessage").textContent = "Failed to update reward points.";
+                    }
+                } catch (error) {
+                    console.error("Error updating reward:", error);
+                    document.getElementById("statusMessage").textContent = "Error processing reward.";
                 }
-            } catch (error) {
-                console.error("Error updating reward:", error);
-                document.getElementById("statusMessage").textContent = "Error processing reward.";
+            } else {
+                console.error("Invalid referrer:", document.referrer);
+                document.getElementById("statusMessage").textContent = "Redirect verification failed.";
             }
         } else {
-            console.error("Missing UID or task in URL parameters");
+            console.error("Missing UID, task, or token in URL parameters");
         }
     }
 
