@@ -146,27 +146,31 @@
     async function checkForCompletion() {
         const urlParams = new URLSearchParams(window.location.search);
         const uid = urlParams.get("uid");
-        const task = urlParams.get("task"); // ✅ Ensure we retrieve the task
+        const task = urlParams.get("task");
+
+        console.log("Extracted from URL:", { uid, task }); // ✅ Debugging
 
         if (uid && task) {
             document.getElementById("statusMessage").textContent = "Verifying your reward...";
 
             try {
+                const requestBody = JSON.stringify({ uid: uid, points: 10, task: task });
+                console.log("Sending to server:", requestBody); // ✅ Debugging
+
                 const response = await fetch("http://localhost:3000/reward", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ uid: uid, points: 10, task: task }) // ✅ Include the task
+                    body: requestBody
                 });
 
                 if (response.ok) {
                     document.getElementById("statusMessage").textContent = "Reward added successfully!";
                     loadUserPoints(uid);
-
-                    // Clear URL parameters to prevent duplicate rewards
                     history.replaceState({}, document.title, "dust.html");
                 } else {
+                    console.error("Server response error:", await response.text()); // ✅ Debugging
                     document.getElementById("statusMessage").textContent = "Failed to update reward points.";
                 }
             } catch (error) {
