@@ -89,7 +89,7 @@
 
     async function loadUserPoints(uid) {
         try {
-            const response = await fetch(`http://localhost:3000/user/${uid}`, { credentials: 'include' });
+            const response = await fetch(`http://localhost:3000/user/?{uid}`, { credentials: 'include' });
 
             if (response.ok) {
                 const data = await response.json();
@@ -131,7 +131,7 @@
 
         // After opening the short link, reload to check if the user completed the task
         setTimeout(() => {
-            window.location.href = `dust.html?uid=${uid}&task=${taskName}`;
+            window.location.href = `dust.html?uid=?{uid}&task=?{taskName}`;
         }, 3000);
     }
 
