@@ -120,46 +120,31 @@
         }
     }
 
-    async function openShortLink(shortLink, taskName) {
+    function openShortLink(shortLink, taskName) {
         if (!currentUser) {
             alert("User not authenticated!");
             return;
         }
 
         const uid = currentUser.uid;
-        const sessionToken = generateSessionToken(); // Generate a unique token
+        const token = generateSessionToken(); // Generate a unique token
 
-        // Store session token locally (to use later)
-        localStorage.setItem("sessionToken", sessionToken);
-        localStorage.setItem("lastCompletedTask", taskName);
+        // ✅ Send the token to the server before opening the short link
+        fetch("http://localhost:3000/save-token", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ uid, task: taskName, token })
+        });
 
-        // ✅ Send token and task details to server before opening short link
-        try {
-            const response = await fetch("http://localhost:3000/store-token", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ uid, task: taskName, token: sessionToken })
-            });
-
-            if (!response.ok) throw new Error("Failed to store token on server");
-
-            // ✅ Open the short link (User completes the task)
-            window.open(`${shortLink}?uid=${uid}&task=${taskName}`, "_blank");
-
-            // ✅ Redirect to verification page after delay
-            setTimeout(() => {
-                window.location.href = `dust.html?uid=${uid}&task=${taskName}&token=${sessionToken}`;
-            }, 3000);
-        } catch (error) {
-            console.error("Error storing session token:", error);
-        }
+        // ✅ Open the short link with uid, task, and token in URL
+        window.open(`${shortLink}?uid=${uid}&task=${taskName}&token=${token}`, "_blank");
+        
     }
+
 
     function generateSessionToken() {
         return Math.random().toString(36).substr(2, 10); // Generate a random token
     }
-
-
 
 
 
@@ -168,11 +153,19 @@
         const uid = urlParams.get("uid");
         const task = urlParams.get("task");
         const token = urlParams.get("token");
+        const referrer = document.referrer; // ✅ Get referrer
 
         console.log("Extracted from URL:", { uid, task, token });
-        console.log("Referrer:", document.referrer); // ✅ Debugging
+        console.log("Referrer:", referrer); // ✅ Debugging
 
-        // ✅ Check if all parameters exist
+        // ✅ Ensure the user was redirected from "https://blog.adlink.click"
+        if (referrer !== "https://blog.adlink.click/") {
+            console.error("Invalid referrer:", referrer);
+            document.getElementById("statusMessage").textContent = "Invalid referrer. Reward not processed.";
+            return;
+        }
+
+        // ✅ Ensure all parameters exist
         if (!uid || !task || !token) {
             console.error("Missing UID, task, or token in URL parameters");
             return;
@@ -184,7 +177,7 @@
             const response = await fetch("http://localhost:3000/reward", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ uid, task, token, referrer: document.referrer }) // ✅ Send referrer to server
+                body: JSON.stringify({ uid, task, token })
             });
 
             if (response.ok) {
@@ -200,6 +193,9 @@
             document.getElementById("statusMessage").textContent = "Error processing reward.";
         }
     }
+
+    // ✅ Run the function when page loads
+    document.addEventListener("DOMContentLoaded", checkForCompletion);
 
 
     document.addEventListener("DOMContentLoaded", function () {
