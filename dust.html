@@ -130,7 +130,7 @@
         const token = generateSessionToken(); // Generate a unique token
 
         // ✅ Send the token to the server before opening the short link
-        fetch("http://localhost:3000/save-token", {
+        fetch("http://localhost:3000/store-token", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ uid, task: taskName, token })
