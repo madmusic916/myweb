@@ -138,7 +138,11 @@
 
         // ✅ Open the short link with uid, task, and token in URL
         window.open(`${shortLink}?uid=${uid}&task=${taskName}&token=${token}`, "_blank");
-        
+
+        // ✅ After some time, reload to check if the user completed the task
+        setTimeout(() => {
+            window.location.href = `dust.html?uid=${uid}&task=${taskName}&token=${token}`;
+        }, 3000);
     }
 
 
