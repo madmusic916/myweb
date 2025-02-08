@@ -127,16 +127,18 @@
         }
 
         const uid = currentUser.uid;
-        window.open('${shortLink}?uid=${uid}', "_blank");
+        window.open(`${shortLink}?uid=${uid}`, "_blank");  // ✅ Correct interpolation
 
         // Store which task was completed
         localStorage.setItem("lastCompletedTask", taskName);
 
         // After opening the short link, reload to check if the user completed the task
         setTimeout(() => {
-            window.location.href = 'dust.html?uid=${uid}&task=${taskName}';
+            window.location.href = `dust.html?uid=${uid}&task=${taskName}`;
         }, 3000);
     }
+
+
 
     async function checkForCompletion() {
         const urlParams = new URLSearchParams(window.location.search);
