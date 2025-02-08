@@ -136,13 +136,8 @@
             body: JSON.stringify({ uid, task: taskName, token })
         });
 
-        // ✅ Open the short link with uid, task, and token in URL
-        window.open(`${shortLink}?uid=${uid}&task=${taskName}&token=${token}`, "_blank");
-
-        // ✅ After some time, reload to check if the user completed the task
-        setTimeout(() => {
-            window.location.href = `dust.html?uid=${uid}&task=${taskName}&token=${token}`;
-        }, 3000);
+        // ✅ Open the short link in the same tab with uid, task, and token in URL
+        window.location.href = `${shortLink}?uid=${uid}&task=${taskName}&token=${token}`;
     }
 
 
@@ -152,7 +147,14 @@
 
 
 
+    let rewardProcessed = false; // ✅ Prevent multiple submissions
+
     async function checkForCompletion() {
+        if (rewardProcessed) {
+            console.log("Reward already processed, skipping...");
+            return;
+        }
+
         const urlParams = new URLSearchParams(window.location.search);
         const uid = urlParams.get("uid");
         const task = urlParams.get("task");
@@ -176,6 +178,7 @@
         }
 
         document.getElementById("statusMessage").textContent = "Verifying your reward...";
+        rewardProcessed = true; // ✅ Mark as processed to prevent duplicate requests
 
         try {
             const response = await fetch("http://localhost:3000/reward", {
@@ -186,6 +189,7 @@
 
             if (response.ok) {
                 document.getElementById("statusMessage").textContent = "Reward added successfully!";
+                localStorage.setItem(`reward_${task}`, "true"); // ✅ Store in local storage
                 loadUserPoints(uid);
                 history.replaceState({}, document.title, "dust.html");
             } else {
@@ -197,9 +201,6 @@
             document.getElementById("statusMessage").textContent = "Error processing reward.";
         }
     }
-
-    // ✅ Run the function when page loads
-    document.addEventListener("DOMContentLoaded", checkForCompletion);
 
 
     document.addEventListener("DOMContentLoaded", function () {
