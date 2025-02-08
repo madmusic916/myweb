@@ -170,37 +170,34 @@
         const token = urlParams.get("token");
 
         console.log("Extracted from URL:", { uid, task, token });
+        console.log("Referrer:", document.referrer); // ✅ Debugging
 
-        if (uid && task && token) {
-            document.getElementById("statusMessage").textContent = "Verifying your reward...";
-
-            // ✅ Check if the user was redirected from "https://blog.adlink.click/"
-            if (document.referrer.includes("https://blog.adlink.click/")) {
-                try {
-                    const response = await fetch("http://localhost:3000/reward", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ uid, task, token })
-                    });
-
-                    if (response.ok) {
-                        document.getElementById("statusMessage").textContent = "Reward added successfully!";
-                        loadUserPoints(uid);
-                        history.replaceState({}, document.title, "dust.html");
-                    } else {
-                        console.error("Server response error:", await response.text());
-                        document.getElementById("statusMessage").textContent = "Failed to update reward points.";
-                    }
-                } catch (error) {
-                    console.error("Error updating reward:", error);
-                    document.getElementById("statusMessage").textContent = "Error processing reward.";
-                }
-            } else {
-                console.error("Invalid referrer:", document.referrer);
-                document.getElementById("statusMessage").textContent = "Redirect verification failed.";
-            }
-        } else {
+        // ✅ Check if all parameters exist
+        if (!uid || !task || !token) {
             console.error("Missing UID, task, or token in URL parameters");
+            return;
+        }
+
+        document.getElementById("statusMessage").textContent = "Verifying your reward...";
+
+        try {
+            const response = await fetch("http://localhost:3000/reward", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ uid, task, token, referrer: document.referrer }) // ✅ Send referrer to server
+            });
+
+            if (response.ok) {
+                document.getElementById("statusMessage").textContent = "Reward added successfully!";
+                loadUserPoints(uid);
+                history.replaceState({}, document.title, "dust.html");
+            } else {
+                console.error("Server response error:", await response.text());
+                document.getElementById("statusMessage").textContent = "Failed to update reward points.";
+            }
+        } catch (error) {
+            console.error("Error updating reward:", error);
+            document.getElementById("statusMessage").textContent = "Error processing reward.";
         }
     }
 
