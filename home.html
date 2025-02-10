@@ -408,7 +408,7 @@
 
     async function checkAuthStatus() {
         try {
-            const response = await fetch('http://localhost:3000/me', {
+            const response = await fetch('https://server-ojjx.onrender.com/me', {
                 method: 'GET',
                 credentials: 'include'
             });
@@ -437,7 +437,7 @@
 
     async function loadUserPoints(uid) {
         try {
-            const response = await fetch(`http://localhost:3000/user/${uid}`, {
+            const response = await fetch(`https://server-ojjx.onrender.com/user/${uid}`, {
                 method: 'GET',
                 credentials: 'include'
             });
@@ -462,7 +462,7 @@
     document.getElementById("menuLogout").addEventListener("click", async () => {
         try {
             // Call the logout route on the server to clear the JWT cookie
-            const response = await fetch('http://localhost:3000/logout', {
+            const response = await fetch('https://server-ojjx.onrender.com/logout', {
                 method: 'POST',
                 credentials: 'include',  // Ensure that cookies are sent with the request
             });
