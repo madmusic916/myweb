@@ -72,14 +72,12 @@
 
     async function checkAuthStatus() {
         try {
-            const response = await fetch('http://localhost:3000/me', { credentials: 'include' });
+            const response = await fetch('https://server-ojjx.onrender.com/me', { credentials: 'include' });
 
             if (response.ok) {
                 currentUser = await response.json();
                 document.getElementById("userNameone").textContent = currentUser.username;
                 loadUserPoints(currentUser.uid);
-                // ✅ Now we have the correct uid, call loadTaskLinks()
-                loadTaskLinks(currentUser.uid);
             } else {
                 window.location.href = "index.html";
             }
@@ -91,7 +89,7 @@
 
     async function loadUserPoints(uid) {
         try {
-            const response = await fetch(`http://localhost:3000/user/${uid}`, { credentials: 'include' });
+            const response = await fetch(`https://server-ojjx.onrender.com/user/${uid}`, { credentials: 'include' });
 
             if (response.ok) {
                 const data = await response.json();
@@ -104,143 +102,45 @@
         }
     }
 
-
-    async function loadTaskLinks(uid) {
-        try {
-            const response = await fetch(`http://localhost:3000/task-links?uid=${uid}`, { credentials: 'include' });
-
-            if (!response.ok) {
-                throw new Error(`Server responded with status: ${response.status}`);
-            }
-
-            const taskLinks = await response.json();
-            console.log("Received task links from server:", taskLinks); // Debugging
-
-            if (Object.keys(taskLinks).length === 0) {
-                console.log("No available tasks. Disabling all buttons.");
-            }
-
-            // Define buttons and their corresponding tasks
-            const buttons = {
-                btn1: "task1",
-                btn2: "task2",
-                btn3: "task3",
-                btn4: "task4",
-                btn5: "task5"
-            };
-
-            // Enable/disable buttons based on available tasks
-            for (const [btnId, taskKey] of Object.entries(buttons)) {
-                const btn = document.getElementById(btnId);
-                if (btn) {
-                    if (taskLinks[taskKey]) {
-                        btn.onclick = () => openShortLink(taskLinks[taskKey], taskKey);
-                        btn.disabled = false;
-                        btn.style.opacity = "1";
-                        btn.style.cursor = "pointer";
-                    } else {
-                        btn.disabled = true;
-                        btn.style.opacity = "0.5";
-                        btn.style.cursor = "not-allowed";
-                    }
-                }
-            }
-        } catch (error) {
-            console.error("Error loading tasks:", error);
-        }
-    }
-
-
-
-    function openShortLink(shortLink, taskName) {
-        if (!currentUser) {
-            alert("User not authenticated!");
+    async function sendTask(taskNumber) {
+        if (!currentUser || !currentUser.uid) {
+            console.error("User not authenticated. Cannot send task.");
             return;
         }
 
-        const uid = currentUser.uid;
-        const token = generateSessionToken(); // Generate a unique token
+        const payload = { uid: currentUser.uid, task: `Task ${taskNumber}` };
 
-        // ✅ Send the token to the server before opening the short link
-        fetch("http://localhost:3000/store-token", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ uid, task: taskName, token })
-        });
-
-        // ✅ Open the short link in the same tab with uid, task, and token in URL
-        window.location.href = `${shortLink}?uid=${uid}&task=${taskName}&token=${token}`;
-    }
-
-
-    function generateSessionToken() {
-        return Math.random().toString(36).substr(2, 10); // Generate a random token
-    }
-
-
-
-    let rewardProcessed = false; // ✅ Prevent multiple submissions
-
-    async function checkForCompletion() {
-        if (rewardProcessed) {
-            console.log("Reward already processed, skipping...");
-            return;
-        }
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const uid = urlParams.get("uid");
-        const task = urlParams.get("task");
-        const token = urlParams.get("token");
-        const referrer = document.referrer; // ✅ Get referrer
-
-        console.log("Extracted from URL:", { uid, task, token });
-        console.log("Referrer:", referrer); // ✅ Debugging
-
-        // ✅ Ensure the user was redirected from "https://blog.adlink.click"
-        if (referrer !== "https://blog.adlink.click/") {
-            console.error("Invalid referrer:", referrer);
-            document.getElementById("statusMessage").textContent = "Invalid referrer. Reward not processed.";
-            return;
-        }
-
-        // ✅ Ensure all parameters exist
-        if (!uid || !task || !token) {
-            console.error("Missing UID, task, or token in URL parameters");
-            return;
-        }
-
-        document.getElementById("statusMessage").textContent = "Verifying your reward...";
-        rewardProcessed = true; // ✅ Mark as processed to prevent duplicate requests
+        console.log("Sending task to server:", payload);
 
         try {
-            const response = await fetch("http://localhost:3000/reward", {
+            const response = await fetch("https://server-ojjx.onrender.com/task", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ uid, task, token })
+                body: JSON.stringify(payload),
+                credentials: "include",
             });
 
-            if (response.ok) {
-                document.getElementById("statusMessage").textContent = "Reward added successfully!";
-                localStorage.setItem(`reward_${task}`, "true"); // ✅ Store in local storage
-                loadUserPoints(uid);
-                history.replaceState({}, document.title, "dust.html");
+            const result = await response.json();
+            console.log("Server response:", result);
+
+            if (response.ok && result.shortLink) {
+                console.log("Task sent successfully. Redirecting...");
+                window.location.href = result.shortLink;  // ✅ Redirect to the short link
             } else {
-                console.error("Server response error:", await response.text());
-                document.getElementById("statusMessage").textContent = "Failed to update reward points.";
+                console.error("Failed to send task:", result);
             }
         } catch (error) {
-            console.error("Error updating reward:", error);
-            document.getElementById("statusMessage").textContent = "Error processing reward.";
+            console.error("Error sending task:", error);
         }
     }
-
 
     document.addEventListener("DOMContentLoaded", function () {
         checkAuthStatus();
-        loadTaskLinks();
-        checkForCompletion();
-
-
+        document.getElementById("btn1").addEventListener("click", () => sendTask(1));
+        document.getElementById("btn2").addEventListener("click", () => sendTask(2));
+        document.getElementById("btn3").addEventListener("click", () => sendTask(3));
+        document.getElementById("btn4").addEventListener("click", () => sendTask(4));
+        document.getElementById("btn5").addEventListener("click", () => sendTask(5));
     });
 </script>
 </body>
