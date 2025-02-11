@@ -134,14 +134,46 @@
         }
     }
 
+    async function loadCompletedTasks(uid) {
+        try {
+            const response = await fetch(`https://server-ojjx.onrender.com/user/${uid}/completed-tasks`, { credentials: 'include' });
+
+            if (response.ok) {
+                const data = await response.json();
+                const completedTasks = data.completedTasks || [];
+
+                // Disable completed task buttons
+                completedTasks.forEach(task => {
+                    const taskNumber = task.split(" ")[1]; // Extract task number
+                    const button = document.getElementById(`btn${taskNumber}`);
+                    if (button) {
+                        button.disabled = true;
+                        button.style.backgroundColor = "#ccc"; // Gray out button
+                        button.style.cursor = "not-allowed";
+                    }
+                });
+            } else {
+                console.error("Failed to fetch completed tasks. Status:", response.status);
+            }
+        } catch (error) {
+            console.error("Error fetching completed tasks:", error);
+        }
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
-        checkAuthStatus();
+        checkAuthStatus().then(() => {
+            if (currentUser && currentUser.uid) {
+                loadCompletedTasks(currentUser.uid);
+            }
+        });
+
         document.getElementById("btn1").addEventListener("click", () => sendTask(1));
         document.getElementById("btn2").addEventListener("click", () => sendTask(2));
         document.getElementById("btn3").addEventListener("click", () => sendTask(3));
         document.getElementById("btn4").addEventListener("click", () => sendTask(4));
         document.getElementById("btn5").addEventListener("click", () => sendTask(5));
     });
+
 </script>
 </body>
 </html>
