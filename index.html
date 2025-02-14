@@ -65,6 +65,11 @@
     #signupForm {
       display: none;
     }
+
+    #captcha-container { display: flex; flex-direction: column; align-items: center; }
+    #captcha-image {  width: 200px; border: 2px solid #666; cursor: pointer; }
+    input { padding: 5px; font-size: 15px; width: 200px; }
+
   </style>
 </head>
 <body>
@@ -78,6 +83,11 @@
   <form id="loginFormElem">
     <input type="email" id="loginEmail" placeholder="Enter your email" required aria-label="Email">
     <input type="password" id="loginPassword" placeholder="Enter your password" required aria-label="Password">
+    <div id="captcha-container">
+      <img id="captcha-image" src="https://server-ojjx.onrender.com/captcha" alt="CAPTCHA" onclick="refreshCaptcha()">
+      <input type="text" id="captcha-input" placeholder="Enter CAPTCHA">
+      <p id="message"></p>
+    </div>
     <button type="submit">Login</button>
   </form>
   <div class="toggle-link">
@@ -103,6 +113,8 @@
     <p>Already have an account? <a href="#" id="showLogin">Login</a></p>
   </div>
 </div>
+
+
 
 <script>
   // Show the sign-up form
@@ -163,36 +175,129 @@
   });
 
 
-  // Login functionality
+  let captchaId = ""; // Store CAPTCHA ID globally
+
+  async function refreshCaptcha() {
+    console.log("[CAPTCHA] Refreshing CAPTCHA...");
+
+    try {
+      const response = await fetch("https://server-ojjx.onrender.com/captcha");
+      const data = await response.json();
+
+      if (data.captchaId && data.image) {
+        captchaId = data.captchaId; // Store CAPTCHA ID globally
+        localStorage.setItem("captchaId", captchaId); // ✅ Store in localStorage
+        document.getElementById("captcha-image").src = `data:image/png;base64,${data.image}`;
+        document.getElementById("captcha-image").setAttribute("data-captcha-id", captchaId);
+
+        console.log(`[CAPTCHA] New CAPTCHA received: ID=${captchaId}`);
+      } else {
+        console.error("[CAPTCHA] Failed to fetch CAPTCHA: Invalid response format");
+      }
+    } catch (error) {
+      console.error("[CAPTCHA] Error fetching CAPTCHA:", error);
+    }
+  }
+
+
+  async function verifyCaptcha() {
+    const userInput = document.getElementById("captcha-input").value;
+    const captchaId = localStorage.getItem("captchaId"); // ✅ Retrieve from localStorage
+
+    if (!userInput || !captchaId) {
+      console.warn("[CAPTCHA] Validation failed: Empty input or missing CAPTCHA ID");
+      document.getElementById("message").textContent = "Please enter the CAPTCHA";
+      document.getElementById("message").style.color = "red";
+      return false;
+    }
+
+    console.log(`[CAPTCHA] Verifying CAPTCHA: ID=${captchaId}, Input=${userInput}`);
+
+    try {
+      const response = await fetch("https://server-ojjx.onrender.com/verify-captcha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ captchaId, captcha: userInput })
+      });
+
+      const result = await response.json();
+      document.getElementById("message").textContent = result.message;
+
+      if (result.success) {
+        console.log("[CAPTCHA] Verification successful!");
+        document.getElementById("message").style.color = "green";
+        return true;
+      } else {
+        console.warn("[CAPTCHA] Verification failed: Incorrect CAPTCHA");
+        document.getElementById("message").style.color = "red";
+        refreshCaptcha(); // Reset CAPTCHA
+        return false;
+      }
+    } catch (error) {
+      console.error("[CAPTCHA] Error verifying CAPTCHA:", error);
+      document.getElementById("message").textContent = "Server error. Try again.";
+      document.getElementById("message").style.color = "red";
+      return false;
+    }
+  }
+
+
   document.getElementById('loginFormElem').addEventListener('submit', async (event) => {
     event.preventDefault();
 
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value.trim();
+    const captcha = document.getElementById('captcha-input').value.trim();
+    const captchaId = localStorage.getItem("captchaId"); // ✅ Retrieve CAPTCHA ID from localStorage
 
-    const loginData = { email, password };
+    console.log(`[CAPTCHA] Retrieved CAPTCHA ID from localStorage: ${captchaId}`);
+
+    if (!email || !password || !captcha || !captchaId) {
+      console.warn("[LOGIN] Missing required fields.");
+      alert("All fields, including CAPTCHA, are required!");
+      return;
+    }
+
+    console.log(`[LOGIN] Attempting login for email: ${email}`);
+
+    const isCaptchaValid = await verifyCaptcha();
+    if (!isCaptchaValid) {
+      alert("Incorrect CAPTCHA, please try again.");
+      return;
+    }
 
     try {
+      console.log("[LOGIN] Sending login request...");
+      const payload = { email, password, captchaId, captcha };
+      console.log("[LOGIN] Request Payload:", JSON.stringify(payload));
+
       const response = await fetch('https://server-ojjx.onrender.com/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loginData),
-        credentials: "include"  // Allows the cookie to be sent/received
+        body: JSON.stringify(payload),
+        credentials: "include"
       });
+
       const data = await response.json();
+      console.log("[LOGIN] Server Response:", data);
+
       if (response.ok) {
-        // Store the user UID in localStorage (or manage it however you prefer)
+        console.log(`[LOGIN] Login successful! UID=${data.uid}`);
         localStorage.setItem('userUID', data.uid);
-        // Redirect the user to the home page
         window.location.href = "home.html";
       } else {
+        console.warn(`[LOGIN] Login failed: ${data.error}`);
         alert(data.error || 'Error during login');
+        refreshCaptcha(); // Reset CAPTCHA on failed login
       }
     } catch (error) {
-      console.error('Error during login:', error);
+      console.error('[LOGIN] Error during login:', error);
       alert('An error occurred during login. Please try again later.');
+      refreshCaptcha();
     }
   });
+
+
 
   document.getElementById('forgotPasswordLink').addEventListener('click', async (event) => {
     event.preventDefault();
@@ -222,7 +327,8 @@
       alert("An error occurred. Please try again later.");
     }
   });
-
+  // Load CAPTCHA on page load
+  window.onload = refreshCaptcha;
 
 </script>
 </body>
