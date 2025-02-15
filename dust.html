@@ -733,13 +733,17 @@
     }
 
 
-    async function sendTasktwo(taskNumber) {
+    async function sendTasktwo(taskNumber, captchaId) {
         if (!currentUser || !currentUser.uid) {
             console.error("User not authenticated. Cannot send task.");
             return;
         }
 
-        const payload = { uid: currentUser.uid, task: `Task ${taskNumber}` };
+        const payload = {
+            uid: currentUser.uid,
+            task: `Task ${taskNumber}`,
+            captchaId // ✅ Include CAPTCHA ID
+        };
 
         console.log("Sending task to server:", payload);
 
