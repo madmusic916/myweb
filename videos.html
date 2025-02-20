@@ -7,7 +7,14 @@
 <body>
 <script>
   window.onload = function () {
-    // Get the current URL parameters
+    // Fix issue where URL contains "/?" instead of "?"
+    if (window.location.href.includes("videos.html/?")) {
+      let fixedUrl = window.location.href.replace("videos.html/?", "videos.html?");
+      window.location.replace(fixedUrl);
+      return; // Stop execution to prevent double redirection
+    }
+
+    // Extract parameters correctly
     const urlParams = new URLSearchParams(window.location.search);
     const uid = urlParams.get("uid");
     const task = urlParams.get("task");
@@ -24,7 +31,5 @@
     }
   };
 </script>
-
-
 </body>
 </html>
