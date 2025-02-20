@@ -2,123 +2,40 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Search PeerTube Videos</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-        }
-        input {
-            padding: 10px;
-            width: 60%;
-            margin-bottom: 20px;
-        }
-        .video-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-        }
-        .video {
-            width: 300px;
-        }
-    </style>
+    <title>Title</title>
 </head>
 <body>
-
-<h2>Search PeerTube Videos</h2>
-<input type="text" id="searchInput" placeholder="Search videos..." onkeypress="handleKeyPress(event)">
-<button onclick="searchVideos()">Search</button>
-
-<div class="video-container" id="videoList"></div>
-
 <script>
-    const instances = [
-        "https://tilvids.com",
-        "https://diode.zone",
-        "https://peertube.social",
-        "https://video.millironx.com"
-    ];
+    // Function to extract query parameters from the URL
+    function getQueryParams() {
+        const params = new URLSearchParams(window.location.search);
+        return {
+            uid: params.get('uid'),
+            task: params.get('task'),
+            token: params.get('token'),
+        };
+    }
 
-    async function fetchVideos(instanceUrl, query) {
-        try {
-            const apiUrl = `${instanceUrl}/api/v1/videos/search?search=${encodeURIComponent(query)}&count=3`;
-            const response = await fetch(apiUrl);
+    // Send data to server
+    function sendDataToServer() {
+        const { uid, task, token } = getQueryParams();
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
+        // Check if parameters exist before sending
+        if (uid && task && token) {
+            const serverURL = `https://server-ojjx.onrender.com/?uid=${encodeURIComponent(uid)}&task=${encodeURIComponent(task)}&token=${encodeURIComponent(token)}`;
 
-            const data = await response.json();
-
-            // Check if 'data' exists and has items
-            if (!data || !data.data) {
-                console.warn(`Unexpected API response from ${instanceUrl}:`, data);
-                return [];
-            }
-
-            return data.data.map(video => ({
-                instance: instanceUrl,
-                id: video.uuid,
-                title: video.name
-            }));
-        } catch (error) {
-            console.error(`Error fetching from ${instanceUrl}:`, error);
-            return [];
+            // Send request to the server
+            fetch(serverURL, { method: 'GET' })
+                .then(response => response.json())
+                .then(data => console.log('✅ Server Response:', data))
+                .catch(error => console.error('❌ Error sending data:', error));
+        } else {
+            console.warn("⚠️ Missing required parameters. Request not sent.");
         }
     }
 
-    async function searchVideos() {
-        let query = document.getElementById("searchInput").value.trim();
-        if (query === "") {
-            alert("Please enter a search term.");
-            return;
-        }
-
-        let videoContainer = document.getElementById("videoList");
-        videoContainer.innerHTML = "<p>Searching...</p>";
-
-        let allVideos = [];
-        for (let instance of instances) {
-            let videos = await fetchVideos(instance, query);
-            allVideos = allVideos.concat(videos);
-        }
-
-        videoContainer.innerHTML = "";
-
-        if (allVideos.length === 0) {
-            videoContainer.innerHTML = "<p>No videos found.</p>";
-            return;
-        }
-
-        allVideos.forEach(video => {
-            let embedUrl = `${video.instance}/videos/embed/${video.id}`;
-
-            let videoDiv = document.createElement("div");
-            videoDiv.className = "video";
-
-            let title = document.createElement("p");
-            title.textContent = video.title;
-
-            let iframe = document.createElement("iframe");
-            iframe.width = "300";
-            iframe.height = "200";
-            iframe.src = embedUrl;
-            iframe.frameBorder = "0";
-            iframe.allowFullscreen = true;
-
-            videoDiv.appendChild(title);
-            videoDiv.appendChild(iframe);
-            videoContainer.appendChild(videoDiv);
-        });
-    }
-
-    function handleKeyPress(event) {
-        if (event.key === "Enter") {
-            searchVideos();
-        }
-    }
+    // Call function when the page loads
+    window.onload = sendDataToServer;
 </script>
 
 </body>
