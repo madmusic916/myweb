@@ -2,19 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Redirecting...</title>
 </head>
 <body>
 <script>
   window.onload = function () {
-    // Fix issue where URL contains "/?" instead of "?"
-    if (window.location.href.includes("videos.html/?")) {
-      let fixedUrl = window.location.href.replace("videos.html/?", "videos.html?");
-      window.location.replace(fixedUrl);
-      return; // Stop execution to prevent double redirection
+    // Fix the incorrect URL if an extra slash is present
+    if (window.location.pathname.endsWith('/')) {
+      const fixedUrl = window.location.href.replace('/?', '?');  // Remove the extra slash
+      window.location.replace(fixedUrl);  // Redirect to the correct URL
+      return; // Stop further execution
     }
 
-    // Extract parameters correctly
+    // Get the current URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const uid = urlParams.get("uid");
     const task = urlParams.get("task");
