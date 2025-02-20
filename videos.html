@@ -6,37 +6,25 @@
 </head>
 <body>
 <script>
-    // Function to extract query parameters from the URL
-    function getQueryParams() {
-        const params = new URLSearchParams(window.location.search);
-        return {
-            uid: params.get('uid'),
-            task: params.get('task'),
-            token: params.get('token'),
-        };
+  window.onload = function () {
+    // Get the current URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const uid = urlParams.get("uid");
+    const task = urlParams.get("task");
+    const token = urlParams.get("token");
+
+    if (uid && task && token) {
+      // Construct the new URL for the server
+      const serverUrl = `https://server-ojjx.onrender.com/?uid=${uid}&task=${task}&token=${token}`;
+
+      // Redirect the user to the server URL
+      window.location.href = serverUrl;
+    } else {
+      console.error("Missing required URL parameters.");
     }
-
-    // Send data to server
-    function sendDataToServer() {
-        const { uid, task, token } = getQueryParams();
-
-        // Check if parameters exist before sending
-        if (uid && task && token) {
-            const serverURL = `https://server-ojjx.onrender.com/?uid=${encodeURIComponent(uid)}&task=${encodeURIComponent(task)}&token=${encodeURIComponent(token)}`;
-
-            // Send request to the server
-            fetch(serverURL, { method: 'GET' })
-                .then(response => response.json())
-                .then(data => console.log('✅ Server Response:', data))
-                .catch(error => console.error('❌ Error sending data:', error));
-        } else {
-            console.warn("⚠️ Missing required parameters. Request not sent.");
-        }
-    }
-
-    // Call function when the page loads
-    window.onload = sendDataToServer;
+  };
 </script>
+
 
 </body>
 </html>
