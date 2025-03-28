@@ -68,6 +68,7 @@
         margin-left: 220px; /* Push the ad to the right */
         display: flex;
         justify-content: center;
+          margin: 20 px;
     }
 
     .ad-container iframe {
@@ -93,8 +94,9 @@
             #clock-container h1 {font-size: 1.4rem;font-weight: normal;margin-bottom: 5px;color: white;} #clock {font-size: 1.5rem;font-weight: bold;color: white;padding: 5px 10px;}
 
 
-             .ad-container {
-            width: calc(100% - 220px);
+ad-container {
+            width: 100%; /* Full width since sidebar disappears */
+            margin-left: 0; /* Reset margin */
         }
         .ad-container iframe {
             width: 468px;
