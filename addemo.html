@@ -64,18 +64,19 @@
 
 
       .ad-container {
-        width: 728px; /* Ad width */
-        display: flex;
-        justify-content: center;
-         margin-top: 30px;
-            margin-left: calc((100vw - 220px - 900px) / 2 + 220px + (900px - 728px) / 2);
-    }
+    width: 728px; /* Ad width */
+    display: block; /* Ensure margin applies */
+    justify-content: center;
+    margin-top: 30px;
+    margin-left: calc((100vw - 220px - 900px) / 2 + 220px + (900px - 728px) / 2);
+}
 
-    .ad-container iframe {
-        max-width: 100%;
-        width: 728px;
-        height: 90px;
-    }
+.ad-container iframe {
+    max-width: 100%;
+    width: 728px;
+    height: 90px;
+}
+
 
 
 
