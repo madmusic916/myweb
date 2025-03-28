@@ -64,11 +64,11 @@
 
 
       .ad-container {
-        width: calc(100% - 220px); /* Adjusted for sidebar width */
-        margin-left: 220px; /* Push the ad to the right */
+        width: 728px; /* Ad width */
         display: flex;
         justify-content: center;
          margin-top: 30px auto;
+            margin-left: calc((100vw - 220px - 900px) / 2 + 220px + (900px - 728px) / 2);
     }
 
     .ad-container iframe {
